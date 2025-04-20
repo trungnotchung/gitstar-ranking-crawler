@@ -11,8 +11,7 @@
     "add-jobs": "ts-node src/parallel-crawl/add-job.ts",
     "worker": "ts-node src/parallel-crawl/worker.ts",
     "start-docker": "docker-compose up --build --scale worker=4",
-    "stop-docker": "docker-compose down",
-    "start-all": "npm run start-docker && npm run add-jobs"
+    "stop-docker": "docker-compose down"
   },
   "repository": {
     "type": "git",
