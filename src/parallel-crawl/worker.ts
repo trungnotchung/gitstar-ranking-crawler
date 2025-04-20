@@ -1,20 +1,36 @@
-
-import { crawl } from './crawl';
 import repoQueue from './queue';
+import { crawl } from './crawl';
 
-repoQueue.process(async (job: any) => {
-  console.log("Processing repo:", job.data.repoFullName);
-  const result = await crawl(job.data.repoFullName);
-  console.log(result);
-  // TODO: save to db
-  console.log("Repo processed:", job.data.repoFullName);
-  return { success: true, result };
+/**
+ * Process each job from the queue
+ */
+repoQueue.process(async (job) => {
+  const repoFullName = job.data.repoFullName;
+  console.log(`🚀 Processing repo: ${repoFullName}`);
+
+  try {
+    const result = await crawl(repoFullName);
+    console.log(`✅ Repo processed: ${repoFullName}`);
+
+    // TODO: save to database 
+
+    return { success: true, result };
+  } catch (error: any) {
+    console.error(`❌ Error processing ${repoFullName}:`, error.message);
+    throw error; 
+  }
 });
 
-repoQueue.on('completed', (job: any) => {
-  console.log("Job completed:", job.id);
+/**
+ * Handle job completion
+ */
+repoQueue.on('completed', (job) => {
+  console.log(`Job completed: ${job.id}`);
 });
 
-repoQueue.on('failed', (job: any, err: any) => {
-  console.log("Job failed:", job.id, err);
+/**
+ * Handle job failure
+ */
+repoQueue.on('failed', (job, err) => {
+  console.error(`Job failed: ${job.id}`, err);
 });
