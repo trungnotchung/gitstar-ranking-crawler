@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import dotenv from 'dotenv';
+import { GitHubRepo, GitHubRelease, GitHubCommit, GitHubReleaseCommit } from './interface';
 
 dotenv.config();
 const proxyHost = process.env.PROXY_HOST;
@@ -19,27 +20,14 @@ const axiosWithProxy: AxiosInstance = axios.create({
   }
 });
 
-interface GitHubRepo {
-  full_name: string;
-}
 
-interface GitHubRelease {
-  tag_name: string;
-}
-
-interface GitHubCommit {
-  sha: string;
-  commit: {
-    message: string;
-  };
-}
 
 /**
  * Fetch top repositories from GitHub
  * @param numRepos - Number of repositories to fetch
  * @returns Array of GitHub repositories
  */
-async function fetchTopRepos(numRepos: number): Promise<GitHubRepo[]> {
+export async function fetchTopRepos(numRepos: number): Promise<GitHubRepo[]> {
   const res: AxiosResponse = await axiosWithProxy.get("https://api.github.com/search/repositories", {
     params: {
       q: "stars:>1",
@@ -71,8 +59,11 @@ async function fetchReleases(repoFullName: string): Promise<GitHubRelease | null
     }
 
     const res: AxiosResponse = await axiosWithProxy.get(`https://api.github.com/repos/${repoFullName}/releases/latest`);
-    return res.data;
-
+    const latestRelease: GitHubRelease = {
+      tag_name: res.data.tag_name,
+      body: res.data.body,
+    }
+    return latestRelease;
   } catch (err: any) {
     console.error(`⚠️ Error when fetching release for ${repoFullName}:`, err.message);
     return null;
@@ -84,7 +75,7 @@ async function fetchReleases(repoFullName: string): Promise<GitHubRelease | null
  * @param repoFullName - Full name of the repository (e.g. "owner/repo")
  * @returns Array of commits or null if not enough releases found
  */
-async function getCommitsInLatestRelease(repoFullName: string): Promise<{ hash: string, message: string }[] | null> {
+async function getCommitsInLatestRelease(repoFullName: string): Promise<GitHubCommit[] | null> {
   const [owner, repo] = repoFullName.split("/");
 
   try {
@@ -92,7 +83,7 @@ async function getCommitsInLatestRelease(repoFullName: string): Promise<{ hash: 
     const releases: GitHubRelease[] = releasesRes.data;
 
     if (releases.length < 2) {
-      console.log(`Not enough releases to compare for ${repoFullName}`);
+      console.log(`❌ Not enough releases to compare for ${repoFullName}`);
       return null;
     }
 
@@ -103,34 +94,34 @@ async function getCommitsInLatestRelease(repoFullName: string): Promise<{ hash: 
       `https://api.github.com/repos/${owner}/${repo}/compare/${previousTag}...${latestTag}`
     );
 
-    const commits: GitHubCommit[] = compareRes.data.commits;
-
-    return commits.map(c => ({
-      hash: c.sha,
-      message: c.commit.message.split("\n")[0],
+    const commits: GitHubCommit[] = compareRes.data.commits.map((c: any) => ({
+      sha: c.sha,
+      commit: {
+        message: c.commit.message
+      }
     }));
+
+    return commits;
   } catch (err: any) {
     console.error(`⚠️ Error getting commits for ${repoFullName}:`, err.message);
     return null;
   }
 }
 
+
 /**
  * Crawl GitHub to fetch top repositories, their latest releases, and commits
  * @param numRepos - Number of repositories to fetch
  */
-export async function crawl(numRepos: number): Promise<void> {
-  const topRepos = await fetchTopRepos(numRepos);
-  for (const repo of topRepos) {
-    console.log(repo.full_name);
-    const release = await fetchReleases(repo.full_name);
-    if (release) {
-      const commits = await getCommitsInLatestRelease(repo.full_name);
-      if (commits) {
-        console.log(commits);
-      }
+export async function crawl(repoFullName: string): Promise<GitHubReleaseCommit | null> {
+  const release = await fetchReleases(repoFullName);
+  if (release) {
+    const commits = await getCommitsInLatestRelease(repoFullName);
+    if (commits) {
+      return { release, commits };
     }
   }
+  return null;
 }
 
-// crawl(11);
+// crawl("facebook/react");
