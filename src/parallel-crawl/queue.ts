@@ -1,4 +1,3 @@
-// queues/repoQueue.ts
 import Bull from 'bull';
 
 const repoQueue = new Bull('repo-crawl-queue', {
