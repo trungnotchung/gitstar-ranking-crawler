@@ -3,8 +3,12 @@ import { HttpsProxyAgent } from 'https-proxy-agent';
 import dotenv from 'dotenv';
 
 dotenv.config();
+const proxyHost = process.env.PROXY_HOST;
+const proxyPort = process.env.PROXY_PORT;
+const proxyUsername = process.env.PROXY_USERNAME;
+const proxyPassword = process.env.PROXY_PASSWORD;
 
-const proxy = `http://${process.env.PROXY_USERNAME}:${process.env.PROXY_PASSWORD}@${process.env.PROXY_HOST}:${process.env.PROXY_PORT}`;
+const proxy = `http://${proxyUsername}:${proxyPassword}@${proxyHost}:${proxyPort}`;
 const agent = new HttpsProxyAgent(proxy);
 
 const axiosWithProxy: AxiosInstance = axios.create({
