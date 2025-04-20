@@ -7,7 +7,12 @@
     "dev": "nodemon src/index.ts",
     "build": "tsc",
     "watch": "tsc -w",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "add-jobs": "ts-node src/parallel-crawl/add-job.ts",
+    "worker": "ts-node src/parallel-crawl/worker.ts",
+    "start-docker": "docker-compose up --build --scale worker=4",
+    "stop-docker": "docker-compose down",
+    "start-all": "npm run start-docker && npm run add-jobs"
   },
   "repository": {
     "type": "git",
