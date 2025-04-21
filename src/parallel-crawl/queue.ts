@@ -1,14 +1,8 @@
 import Queue from 'bull';
-import dotenv from 'dotenv';
+import { REDIS_CONFIG } from '../config';
 
-// dotenv.config();
+console.log(`Connecting to Redis at: ${REDIS_CONFIG.url}`);
 
-const redisHost = process.env.REDIS_HOST || 'localhost';
-const redisPort = process.env.REDIS_PORT || '6379';
-const redisUrl = process.env.REDIS_URL || 'redis://'+redisHost+':'+redisPort;
-
-console.log(`Connecting to Redis at: ${redisUrl}`);
-
-const repoQueue = new Queue('repo-crawl-queue', redisUrl);
+const repoQueue = new Queue('repo-crawl-queue', REDIS_CONFIG.url);
 
 export default repoQueue;

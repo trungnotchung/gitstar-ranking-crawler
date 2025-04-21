@@ -1,15 +1,9 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { HttpsProxyAgent } from 'https-proxy-agent';
-import dotenv from 'dotenv';
-import { GitHubRepo, GitHubRelease, GitHubCommit, GitHubReleaseCommit } from './interface';
+import { PROXY_CONFIG, getProxyUrl } from '../config';
+import { GitHubRepo, GitHubRelease, GitHubCommit, GitHubReleaseCommit } from './interfaces';
 
-dotenv.config();
-const proxyHost = process.env.PROXY_HOST;
-const proxyPort = process.env.PROXY_PORT;
-const proxyUsername = process.env.PROXY_USERNAME;
-const proxyPassword = process.env.PROXY_PASSWORD;
-
-const proxy = `http://${proxyUsername}:${proxyPassword}@${proxyHost}:${proxyPort}`;
+const proxy = getProxyUrl();
 const agent = new HttpsProxyAgent(proxy);
 
 const axiosWithProxy: AxiosInstance = axios.create({
@@ -19,8 +13,6 @@ const axiosWithProxy: AxiosInstance = axios.create({
     // Authorization: `token ${process.env.GITHUB_TOKEN}` 
   }
 });
-
-
 
 /**
  * Fetch top repositories from GitHub
