@@ -10,8 +10,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "add-jobs": "ts-node src/parallel-crawl/add-job.ts",
     "worker": "ts-node src/parallel-crawl/worker.ts",
-    "start-docker": "docker-compose up --build --scale worker=4",
-    "stop-docker": "docker-compose down"
+    "docker:up": "docker-compose up --build --scale worker=4",
+    "docker:redis": "docker-compose up -d redis"
   },
   "repository": {
     "type": "git",
