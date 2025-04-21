@@ -1,15 +1,13 @@
-import dotenv from 'dotenv';
 import { fetchReleasesWithCommits } from './githubReleases';
 import { upsertRepoWithReleasesAndCommits } from './dbService';
-
-dotenv.config();
+import { ENV } from './config/environment';
 
 const owner = 'vercel';
 const repo = 'next.js';
 
 (async () => {
   try {
-    const data = await fetchReleasesWithCommits(owner, repo, process.env.GITHUB_TOKEN);
+    const data = await fetchReleasesWithCommits(owner, repo, ENV.GITHUB_TOKEN);
     await upsertRepoWithReleasesAndCommits(owner, repo, data);
     console.log('Data inserted successfully!');
   } catch (error) {
