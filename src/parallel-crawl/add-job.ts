@@ -9,6 +9,7 @@ async function addJobToQueue(numRepos: number) {
     const topRepos = await fetchTopRepos(numRepos);
     // Add the job to the queue
     for (const repo of topRepos) {
+        console.log(`Adding job to queue for ${repo.full_name}`);
         const job = await repoQueue.add({ repoFullName: repo.full_name });
         console.log(`Job ${repo.full_name} added to queue with ID: ${job.id}`);
     }

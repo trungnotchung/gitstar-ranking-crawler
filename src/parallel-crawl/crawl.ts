@@ -2,6 +2,7 @@ import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { PROXY_CONFIG, getProxyUrl } from '../config';
 import { GitHubRepo, GitHubRelease, GitHubCommit, GitHubReleaseCommit } from './interfaces';
+import fs from 'fs';
 
 const proxy = getProxyUrl();
 const agent = new HttpsProxyAgent(proxy);
@@ -63,27 +64,18 @@ async function fetchReleases(repoFullName: string): Promise<GitHubRelease | null
 }
 
 /**
- * Get commits in the latest release for a given repository
+ * Get commits between two tags for a given repository
  * @param repoFullName - Full name of the repository (e.g. "owner/repo")
- * @returns Array of commits or null if not enough releases found
+ * @param baseTag - The base tag to compare from
+ * @param headTag - The head tag to compare to
+ * @returns Array of commits between the tags
  */
-async function getCommitsInLatestRelease(repoFullName: string): Promise<GitHubCommit[] | null> {
+async function getCommitsBetweenTags(repoFullName: string, baseTag: string, headTag: string): Promise<GitHubCommit[]> {
   const [owner, repo] = repoFullName.split("/");
 
   try {
-    const releasesRes: AxiosResponse = await axiosWithProxy.get(`https://api.github.com/repos/${owner}/${repo}/releases`);
-    const releases: GitHubRelease[] = releasesRes.data;
-
-    if (releases.length < 2) {
-      console.log(`❌ Not enough releases to compare for ${repoFullName}`);
-      return null;
-    }
-
-    const latestTag = releases[0].tag_name;
-    const previousTag = releases[1].tag_name;
-
     const compareRes: AxiosResponse = await axiosWithProxy.get(
-      `https://api.github.com/repos/${owner}/${repo}/compare/${previousTag}...${latestTag}`
+      `https://api.github.com/repos/${owner}/${repo}/compare/${baseTag}...${headTag}`
     );
 
     const commits: GitHubCommit[] = compareRes.data.commits.map((c: any) => ({
@@ -95,25 +87,59 @@ async function getCommitsInLatestRelease(repoFullName: string): Promise<GitHubCo
 
     return commits;
   } catch (err: any) {
-    console.error(`⚠️ Error getting commits for ${repoFullName}:`, err.message);
-    return null;
+    console.error(`⚠️ Error getting commits between ${baseTag} and ${headTag} for ${repoFullName}:`, err.message);
+    return [];
   }
 }
-
 
 /**
- * Crawl GitHub to fetch top repositories, their latest releases, and commits
- * @param numRepos - Number of repositories to fetch
+ * Get all releases and their commits for a given repository
+ * @param repoFullName - Full name of the repository (e.g. "owner/repo")
+ * @returns Array of releases with their commits
  */
-export async function crawl(repoFullName: string): Promise<GitHubReleaseCommit | null> {
-  const release = await fetchReleases(repoFullName);
-  if (release) {
-    const commits = await getCommitsInLatestRelease(repoFullName);
-    if (commits) {
-      return { release, commits };
+export async function getAllReleasesAndCommits(repoFullName: string): Promise<GitHubReleaseCommit[]> {
+  const [owner, repo] = repoFullName.split("/");
+
+  try {
+    const releasesRes: AxiosResponse = await axiosWithProxy.get(`https://api.github.com/repos/${owner}/${repo}/releases`);
+    const releases: GitHubRelease[] = releasesRes.data;
+
+    if (!releases || releases.length === 0) {
+      console.log(`❌ Repo ${repoFullName} has no releases.`);
+      return [];
     }
+
+    const result: GitHubReleaseCommit[] = [];
+    
+    // Get commits for each release
+    for (let i = 0; i < releases.length; i++) {
+      const currentRelease = releases[i];
+      const nextRelease = releases[i + 1];
+
+      // console.log("currentRelease: ", currentRelease.tag_name);
+      // console.log("nextRelease: ", nextRelease?.tag_name);
+      // if nextRelease is null we continue
+      if (!nextRelease) {
+        continue;
+      }
+
+      const commits = await getCommitsBetweenTags(repoFullName, nextRelease.tag_name, currentRelease.tag_name);
+
+      result.push({
+        release: {
+          tag_name: currentRelease.tag_name,
+          body: currentRelease.body,
+        },
+        commits
+      });
+    }
+    // write result to file
+    fs.writeFileSync(`${repoFullName.replace('/', '-')}.json`, JSON.stringify(result, null, 2));
+    return result;
+  } catch (err: any) {
+    console.error(`⚠️ Error getting releases and commits for ${repoFullName}:`, err.message);
+    return [];
   }
-  return null;
 }
 
-// crawl("facebook/react");
+// getAllReleasesAndCommits("facebook/react"); 

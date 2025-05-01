@@ -1,5 +1,5 @@
 import repoQueue from './queue';
-import { crawl } from './crawl';
+import { getAllReleasesAndCommits } from './crawl';
 
 /**
  * Process each job from the queue
@@ -9,7 +9,7 @@ repoQueue.process(async (job) => {
   console.log(`🚀 Processing repo: ${repoFullName}`);
 
   try {
-    const result = await crawl(repoFullName);
+    const result = await getAllReleasesAndCommits(repoFullName);
     console.log(`✅ Repo processed: ${repoFullName}`);
 
     // TODO: save to database 

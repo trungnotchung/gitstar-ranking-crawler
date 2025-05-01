@@ -14,7 +14,7 @@ COPY . .
 RUN pnpm install
 
 # Install ts-node globally if needed
-RUN pnpm add -g ts-node typescript
+RUN npm install -g ts-node typescript
 
 # Default command (will be overridden by docker-compose)
 CMD ["ts-node", "src/parallel-crawl/worker.ts"]
