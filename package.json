@@ -12,7 +12,8 @@
     "remove-jobs": "ts-node src/parallel-crawl/remove-jobs.ts",
     "worker": "ts-node src/parallel-crawl/worker.ts",
     "docker:up": "docker-compose up --build",
-    "docker:redis": "docker-compose up -d redis"
+    "docker:redis": "docker-compose up -d redis",
+    "prisma:migrate": "prisma migrate dev --name init && prisma generate"
   },
   "repository": {
     "type": "git",
@@ -27,6 +28,7 @@
   "homepage": "https://github.com/trungnotchung/gitstar-ranking-crawler#readme",
   "description": "",
   "devDependencies": {
+    "@types/axios": "^0.9.36",
     "@types/node": "^22.14.1",
     "nodemon": "^3.1.9",
     "ts-node": "^10.9.2",
@@ -36,7 +38,8 @@
     "axios": "^1.8.4",
     "bull": "^4.16.5",
     "dotenv": "^16.5.0",
-    "https-proxy-agent": "^7.0.6"
-  },
-  "packageManager": "pnpm@10.9.0+sha512.0486e394640d3c1fb3c9d43d49cf92879ff74f8516959c235308f5a8f62e2e19528a65cdc2a3058f587cde71eba3d5b56327c8c33a97e4c4051ca48a10ca2d5f"
+    "https-proxy-agent": "^7.0.6",
+    "@prisma/client": "^6.6.0",
+    "prisma": "^6.6.0"
+  }
 }
