@@ -4,16 +4,15 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Proxy settings
-export const PROXY_CONFIG = {
-  host: process.env.PROXY_HOST,
-  port: process.env.PROXY_PORT,
-  username: process.env.PROXY_USERNAME,
-  password: process.env.PROXY_PASSWORD,
-};
+const PROXY_URL_0 = 'http://kmkydmkb:zu4v5jde2wij@216.10.27.159:6837';
+export const PROXY_URL_1 = process.env.PROXY_URL_1 || PROXY_URL_0;
+export const PROXY_URL_2 = process.env.PROXY_URL_2 || PROXY_URL_0;
+export const PROXY_URL_3 = process.env.PROXY_URL_3 || PROXY_URL_0;
+export const PROXY_URL_4 = process.env.PROXY_URL_4 || PROXY_URL_0;
 
 // Redis settings
 export const REDIS_CONFIG = {
-  host: process.env.REDIS_HOST || 'localhost',
+  host: process.env.REDIS_HOST || 'redis',
   port: process.env.REDIS_PORT || '6379',
   url: process.env.REDIS_URL || 'redis://' + process.env.REDIS_HOST + ':' + process.env.REDIS_PORT
 };
@@ -25,8 +24,3 @@ export const DB_CONFIG = {
 export const GITHUB_CONFIG = {
   github_token: process.env.GITHUB_TOKEN || ''
 }
-
-// Construct proxy URL
-export const getProxyUrl = () => {
-  return `http://${PROXY_CONFIG.username}:${PROXY_CONFIG.password}@${PROXY_CONFIG.host}:${PROXY_CONFIG.port}`;
-}; 
