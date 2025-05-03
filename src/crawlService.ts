@@ -64,16 +64,6 @@ export async function paginatedFetchTopRepos(
   const allRepos: GitHubRepo[] = [];
 
   for (let page = 1; page <= totalPages; page++) {
-    let myProxyUrl = proxyUrl;
-    if (page % 4 == 0) {
-      myProxyUrl = PROXY_URL_1;
-    } else if (page % 4 == 1) {
-      myProxyUrl = PROXY_URL_2;
-    } else if (page % 4 == 2) {
-      myProxyUrl = PROXY_URL_3;
-    } else if (page % 4 == 3) {
-      myProxyUrl = PROXY_URL_4;
-    }
     const axiosWithProxy = createAxiosInstance(proxyUrl);
     try {
       const res = await axiosWithProxy.get("https://api.github.com/search/repositories", {
