@@ -26,24 +26,20 @@ model Repo {
 }
 
 model Release {
-  id              String   @id @default(uuid())
-  title           String
-  description     String
-  publishedAt     DateTime
-  targetCommitish String
-  repo            Repo     @relation(fields: [repoId], references: [id])
-  repoId          String
-  commits         Commit[]
+  id      String   @id @default(uuid())
+  tagName String // từ release.tag_name
+  body    String // từ release.body
+  repo    Repo     @relation(fields: [repoId], references: [id])
+  repoId  String
+  commits Commit[]
 
-  @@unique([title, repoId])
+  @@unique([tagName, repoId])
 }
 
 model Commit {
   id        String   @id @default(uuid())
   sha       String   @unique
   message   String
-  author    String
-  date      DateTime
   release   Release? @relation(fields: [releaseId], references: [id])
   releaseId String?
 }
