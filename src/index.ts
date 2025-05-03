@@ -1,4 +1,4 @@
-import { PROXY_URL_1 } from "./config";
+import { config } from "./config";
 import {
   getAllReleasesAndCommits,
   paginatedFetchTopRepos,
@@ -11,12 +11,15 @@ const prisma = new PrismaClient();
 
 (async () => {
   try {
-    const repos: GitHubRepo[] = await paginatedFetchTopRepos(5000, PROXY_URL_1);
+    const repos: GitHubRepo[] = await paginatedFetchTopRepos(
+      5000,
+      config.proxyUrls[0]
+    );
 
     for (const repo of repos) {
       const releasesWithCommits = await getAllReleasesAndCommits(
         repo.full_name,
-        PROXY_URL_1
+        config.proxyUrls[0]
       );
       const [owner, name] = repo.full_name.split("/");
       await upsertRepoWithReleasesAndCommits(owner, name, releasesWithCommits);
