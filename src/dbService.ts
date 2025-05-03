@@ -1,23 +1,13 @@
 // src/dbService.ts
-import { Prisma } from '@prisma/client';
-import { PrismaClient } from './generated/prisma'
+import { Prisma } from "@prisma/client";
+import { PrismaClient } from "./generated/prisma";
+import { ReleaseInfo } from "./interfaces";
 const prisma = new PrismaClient();
 
 export async function upsertRepoWithReleasesAndCommits(
   owner: string,
   repoName: string,
-  releases: {
-    title: string;
-    description: string;
-    published_at: string;
-    target_commitish: string;
-    commits: {
-      sha: string;
-      message: string;
-      author: string;
-      date: string;
-    }[];
-  }[]
+  releases: ReleaseInfo[]
 ) {
   return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     // Upsert Repo
