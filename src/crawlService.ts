@@ -1,8 +1,12 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { HttpsProxyAgent } from 'https-proxy-agent';
-import { GitHubRepo, GitHubRelease, GitHubCommit, GitHubReleaseCommit } from './interfaces';
-import fs from 'fs';
-import { PROXY_URL_1, PROXY_URL_2, PROXY_URL_3 } from '../config';
+import axios, { AxiosInstance, AxiosResponse } from "axios";
+import fs from "fs";
+import { HttpsProxyAgent } from "https-proxy-agent";
+import {
+  GitHubCommit,
+  GitHubRelease,
+  GitHubReleaseCommit,
+  GitHubRepo,
+} from "./interfaces";
 /**
  * Create an axios instance with the specified proxy
  * @param proxyUrl - The proxy URL to use
@@ -13,8 +17,8 @@ function createAxiosInstance(proxyUrl: string): AxiosInstance {
   return axios.create({
     httpsAgent: agent,
     headers: {
-      'User-Agent': 'axios/1.8.4',
-    }
+      "User-Agent": "axios/1.8.4",
+    },
   });
 }
 
@@ -24,17 +28,23 @@ function createAxiosInstance(proxyUrl: string): AxiosInstance {
  * @param proxyUrl - The proxy URL to use
  * @returns Array of GitHub repositories
  */
-export async function fetchTopRepos(numRepos: number, proxyUrl: string): Promise<GitHubRepo[]> {
+export async function fetchTopRepos(
+  numRepos: number,
+  proxyUrl: string
+): Promise<GitHubRepo[]> {
   const axiosWithProxy = createAxiosInstance(proxyUrl);
-  const res: AxiosResponse = await axiosWithProxy.get("https://api.github.com/search/repositories", {
-    params: {
-      q: "stars:>1",
-      sort: "stars",
-      order: "desc",
-      per_page: numRepos,
-      page: 1,
+  const res: AxiosResponse = await axiosWithProxy.get(
+    "https://api.github.com/search/repositories",
+    {
+      params: {
+        q: "stars:>1",
+        sort: "stars",
+        order: "desc",
+        per_page: numRepos,
+        page: 1,
+      },
     }
-  });
+  );
 
   return res.data.items;
 }
@@ -47,7 +57,12 @@ export async function fetchTopRepos(numRepos: number, proxyUrl: string): Promise
  * @param proxyUrl - The proxy URL to use
  * @returns Array of commits between the tags
  */
-async function getCommitsBetweenTags(repoFullName: string, baseTag: string, headTag: string, proxyUrl: string): Promise<GitHubCommit[]> {
+async function getCommitsBetweenTags(
+  repoFullName: string,
+  baseTag: string,
+  headTag: string,
+  proxyUrl: string
+): Promise<GitHubCommit[]> {
   const [owner, repo] = repoFullName.split("/");
   const axiosWithProxy = createAxiosInstance(proxyUrl);
 
@@ -59,13 +74,16 @@ async function getCommitsBetweenTags(repoFullName: string, baseTag: string, head
     const commits: GitHubCommit[] = compareRes.data.commits.map((c: any) => ({
       sha: c.sha,
       commit: {
-        message: c.commit.message
-      }
+        message: c.commit.message,
+      },
     }));
 
     return commits;
   } catch (err: any) {
-    console.error(`⚠️ Error getting commits between ${baseTag} and ${headTag} for ${repoFullName}:`, err.message);
+    console.error(
+      `⚠️ Error getting commits between ${baseTag} and ${headTag} for ${repoFullName}:`,
+      err.message
+    );
     return [];
   }
 }
@@ -76,12 +94,17 @@ async function getCommitsBetweenTags(repoFullName: string, baseTag: string, head
  * @param proxyUrl - The proxy URL to use
  * @returns Array of releases with their commits
  */
-export async function getAllReleasesAndCommits(repoFullName: string, proxyUrl: string): Promise<GitHubReleaseCommit[]> {
+export async function getAllReleasesAndCommits(
+  repoFullName: string,
+  proxyUrl: string
+): Promise<GitHubReleaseCommit[]> {
   const [owner, repo] = repoFullName.split("/");
   const axiosWithProxy = createAxiosInstance(proxyUrl);
 
   try {
-    const releasesRes: AxiosResponse = await axiosWithProxy.get(`https://api.github.com/repos/${owner}/${repo}/releases`);
+    const releasesRes: AxiosResponse = await axiosWithProxy.get(
+      `https://api.github.com/repos/${owner}/${repo}/releases`
+    );
     const releases: GitHubRelease[] = releasesRes.data;
 
     if (!releases || releases.length === 0) {
@@ -90,11 +113,10 @@ export async function getAllReleasesAndCommits(repoFullName: string, proxyUrl: s
     }
 
     const result: GitHubReleaseCommit[] = [];
-    
 
     // log releases length
     // console.log(`releases length: ${releases.length}`);
-    
+
     // Get commits for each release
     for (let i = 0; i < releases.length; i++) {
       const currentRelease = releases[i];
@@ -109,33 +131,41 @@ export async function getAllReleasesAndCommits(repoFullName: string, proxyUrl: s
       // console.log(`currentRelease: ${currentRelease.tag_name}`);
       // console.log(`nextRelease: ${nextRelease.tag_name}`);
 
-      const commits = await getCommitsBetweenTags(repoFullName, nextRelease.tag_name, currentRelease.tag_name, proxyUrl);
+      const commits = await getCommitsBetweenTags(
+        repoFullName,
+        nextRelease.tag_name,
+        currentRelease.tag_name,
+        proxyUrl
+      );
 
       result.push({
         release: {
           tag_name: currentRelease.tag_name,
           body: currentRelease.body,
         },
-        commits
+        commits,
       });
     }
 
     // Read existing cache
-    const cacheFile = 'cache.json';
+    const cacheFile = "cache.json";
     let cache: Record<string, GitHubReleaseCommit[]> = {};
     if (fs.existsSync(cacheFile)) {
-      cache = JSON.parse(fs.readFileSync(cacheFile, 'utf-8'));
+      cache = JSON.parse(fs.readFileSync(cacheFile, "utf-8"));
     }
-    
+
     // Update cache with new data
     cache[repoFullName] = result;
     fs.writeFileSync(cacheFile, JSON.stringify(cache, null, 2));
-    
+
     return result;
   } catch (err: any) {
-    console.error(`⚠️ Error getting releases and commits for ${repoFullName}:`, err.message);
+    console.error(
+      `⚠️ Error getting releases and commits for ${repoFullName}:`,
+      err.message
+    );
     return [];
   }
 }
 
-// getAllReleasesAndCommits("mrdoob/three.js", PROXY_URL_3); 
+// getAllReleasesAndCommits("mrdoob/three.js", PROXY_URL_3);

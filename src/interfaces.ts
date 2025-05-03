@@ -1,32 +1,20 @@
+export interface GitHubRepo {
+    full_name: string;
+}
+
 export interface GitHubRelease {
-  name: string;
-  body: string;
-  published_at: string;
-  target_commitish: string;
+    tag_name: string;
+    body: string;
 }
 
 export interface GitHubCommit {
-  sha: string;
-  commit: {
-    message: string;
-    author: {
-      name: string;
-      date: string;
+    sha: string;
+    commit: {
+        message: string;
     };
-  };
 }
 
-export interface Commit {
-  sha: string;
-  message: string;
-  author: string;
-  date: string;
-}
-
-export interface ReleaseInfo {
-  title: string;
-  description: string;
-  published_at: string;
-  target_commitish: string;
-  commits: Commit[];
+export interface GitHubReleaseCommit {
+    release: GitHubRelease;
+    commits: GitHubCommit[];
 }

@@ -1,16 +1,12 @@
-import { fetchReleasesWithCommits } from './githubReleases';
-import { upsertRepoWithReleasesAndCommits } from './dbService';
-import { GITHUB_CONFIG } from './config';
+import { upsertRepoWithReleasesAndCommits } from "./dbService";
 
-const owner = 'vercel';
-const repo = 'next.js';
 
 (async () => {
   try {
-    const data = await fetchReleasesWithCommits(owner, repo, GITHUB_CONFIG.github_token);
-    await upsertRepoWithReleasesAndCommits(owner, repo, data);
-    console.log('Data inserted successfully!');
+    // fetch top 5000 repositories and their releases and commits
+    // add them to the database
+    console.log("Data inserted successfully!");
   } catch (error) {
-    console.error('❌ Error inserting data:', error);
+    console.error("❌ Error inserting data:", error);
   }
 })();
