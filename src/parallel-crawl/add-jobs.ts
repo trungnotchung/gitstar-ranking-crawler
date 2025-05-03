@@ -1,5 +1,5 @@
 // src/parallel-crawl/add-job.ts
-import { PROXY_URL_1 } from "../config";
+import { config } from "../config";
 import { fetchTopRepos } from "../crawlService";
 import repoQueue from "./queue";
 
@@ -8,7 +8,7 @@ interface JobData {
 }
 
 async function addJobToQueue(numRepos: number) {
-  const topRepos = await fetchTopRepos(numRepos, PROXY_URL_1);
+  const topRepos = await fetchTopRepos(numRepos, config.proxyUrls[0]);
   // Add the job to the queue
   for (const repo of topRepos) {
     console.log(`Adding job to queue for ${repo.full_name}`);

@@ -1,8 +1,8 @@
-import Queue from 'bull';
-import { REDIS_CONFIG } from '../config';
+import Queue from "bull";
+import { config } from "../config";
 
-console.log(`Connecting to Redis at: ${REDIS_CONFIG.url}`);
+console.log(`Connecting to Redis at: ${config.redisConfig.url}`);
 
-const repoQueue = new Queue('repo-crawl-queue', REDIS_CONFIG.url);
+const repoQueue = new Queue("repo-crawl-queue", config.redisConfig.url);
 
 export default repoQueue;

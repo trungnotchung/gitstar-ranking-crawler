@@ -49,6 +49,53 @@ export async function fetchTopRepos(
   return res.data.items;
 }
 
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function paginatedFetchTopRepos(
+  numRepos: number,
+  proxyUrl: string
+): Promise<GitHubRepo[]> {
+  const PER_PAGE = 100;
+  const totalPages = Math.ceil(numRepos / PER_PAGE);
+  const allRepos: GitHubRepo[] = [];
+
+  for (let page = 1; page <= totalPages; page++) {
+    const axiosWithProxy = createAxiosInstance(proxyUrl);
+    try {
+      const res = await axiosWithProxy.get(
+        "https://api.github.com/search/repositories",
+        {
+          params: {
+            q: "stars:>1",
+            sort: "stars",
+            order: "desc",
+            per_page: PER_PAGE,
+            page,
+          },
+        }
+      );
+
+      const pageRepos = res.data.items.map((r: any) => ({
+        full_name: r.full_name,
+      }));
+
+      allRepos.push(...pageRepos);
+
+      console.log(`✅ Fetched page ${page}/${totalPages}`);
+    } catch (error) {
+      console.error(`❌ Failed to fetch page ${page}:`, error);
+      break;
+    }
+
+    // Delay 1 second to avoid hitting rate limit
+    await delay(1000);
+  }
+
+  return allRepos;
+}
+
 /**
  * Get commits between two tags for a given repository
  * @param repoFullName - Full name of the repository (e.g. "owner/repo")
