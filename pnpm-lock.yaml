@@ -27,9 +27,6 @@ importers:
         specifier: ^6.6.0
         version: 6.6.0(typescript@5.8.3)
     devDependencies:
-      '@types/axios':
-        specifier: ^0.9.36
-        version: 0.9.36
       '@types/node':
         specifier: ^22.14.1
         version: 22.14.1
@@ -283,9 +280,6 @@ packages:
 
   '@tsconfig/node16@1.0.4':
     resolution: {integrity: sha512-vxhUy4J8lyeyinH7Azl1pdd43GJhZH/tP2weN8TntQblOY+A0XbT8DJk1/oCPuOOyg/Ja757rG0CgHcWC8OfMA==}
-
-  '@types/axios@0.9.36':
-    resolution: {integrity: sha512-NLOpedx9o+rxo/X5ChbdiX6mS1atE4WHmEEIcR9NLenRVa5HoVjAvjafwU3FPTqnZEstpoqCaW7fagqSoTDNeg==}
 
   '@types/node@22.14.1':
     resolution: {integrity: sha512-u0HuPQwe/dHrItgHHpmw3N2fYCR6x4ivMNbPHRkBVP4CvN+kiRrKHWk3i8tXiO/joPwXLMYvF9TTF0eqgHIuOw==}
@@ -803,8 +797,6 @@ snapshots:
   '@tsconfig/node14@1.0.3': {}
 
   '@tsconfig/node16@1.0.4': {}
-
-  '@types/axios@0.9.36': {}
 
   '@types/node@22.14.1':
     dependencies:
