@@ -1,0 +1,51 @@
+version: '3'
+
+services:
+  redis:
+    image: redis
+    ports:
+      - "6379:6379"  
+
+  worker1:
+    build: .
+    command: sh -c "npm run worker"
+    environment:
+      - WORKER_ID=1
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    volumes:
+      - .:/app
+
+  worker2:
+    build: .
+    command: sh -c "npm run worker"
+    environment:
+      - WORKER_ID=2
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    volumes:
+      - .:/app
+
+  worker3:
+    build: .
+    command: sh -c "npm run worker"
+    environment:
+      - WORKER_ID=3
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    volumes:
+      - .:/app
+
+  worker4:
+    build: .
+    command: sh -c "npm run worker"
+    environment:
+      - WORKER_ID=4
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    volumes:
+      - .:/app
