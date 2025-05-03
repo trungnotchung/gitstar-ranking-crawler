@@ -1,52 +1,61 @@
-// src/dbService.ts
-import { Prisma } from "@prisma/client";
-import { PrismaClient } from "./generated/prisma";
-import { GitHubReleaseCommit } from "./interfaces";
+import { Prisma } from '@prisma/client';
+import { PrismaClient } from './generated/prisma';
+import {
+  GitHubReleaseCommit,
+  GitHubRepo,
+  GitHubCommit,
+  GitHubRelease
+} from './interfaces'; // Cập nhật đúng đường dẫn
+
 const prisma = new PrismaClient();
 
 export async function upsertRepoWithReleasesAndCommits(
   owner: string,
   repoName: string,
-  releases: GitHubReleaseCommit[]
+  releasesWithCommits: GitHubReleaseCommit[]
 ) {
-  // return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-  //   // Upsert Repo
-  //   const repo = await tx.repo.upsert({
-  //     where: { name_owner: { name: repoName, owner } },
-  //     update: {},
-  //     create: {
-  //       name: repoName,
-  //       owner,
-  //     },
-  //   });
-  //   for (const rel of releases) {
-  //     // Upsert Release
-  //     const release = await tx.release.upsert({
-  //       where: { title_repoId: { title: rel.title, repoId: repo.id } },
-  //       update: {},
-  //       create: {
-  //         title: rel.title,
-  //         description: rel.description,
-  //         publishedAt: new Date(rel.published_at),
-  //         targetCommitish: rel.target_commitish,
-  //         repoId: repo.id,
-  //       },
-  //     });
-  //     for (const c of rel.commits) {
-  //       // Upsert Commit
-  //       await tx.commit.upsert({
-  //         where: { sha: c.sha },
-  //         update: {},
-  //         create: {
-  //           sha: c.sha,
-  //           message: c.message,
-  //           author: c.author,
-  //           date: new Date(c.date),
-  //           releaseId: release.id,
-  //         },
-  //       });
-  //     }
-  //   }
-  //   return { success: true };
-  // });
+  return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    // Upsert Repo
+    const repo = await tx.repo.upsert({
+      where: { name_owner: { name: repoName, owner } },
+      update: {},
+      create: {
+        name: repoName,
+        owner,
+      },
+    });
+
+    for (const relCommit of releasesWithCommits) {
+      const { release, commits } = relCommit;
+
+      // Upsert Release
+      const releaseRecord = await tx.release.upsert({
+        where: { title_repoId: { title: release.tag_name, repoId: repo.id } },
+        update: {},
+        create: {
+          title: release.tag_name,
+          description: release.body,
+          publishedAt: new Date(),
+          targetCommitish: '',
+          repoId: repo.id,
+        },
+      });
+
+      for (const commit of commits) {
+        await tx.commit.upsert({
+          where: { sha: commit.sha },
+          update: {},
+          create: {
+            sha: commit.sha,
+            message: commit.commit.message,
+            author: 'unknown',
+            date: new Date(),
+            releaseId: releaseRecord.id,
+          },
+        });
+      }
+    }
+
+    return { success: true };
+  });
 }
