@@ -4,10 +4,7 @@ import {
   paginatedFetchTopRepos,
 } from "./crawlService";
 import { upsertRepoWithReleasesAndCommits } from "./dbService";
-import { PrismaClient } from "./generated/prisma";
-import { GitHubRepo } from "./interfaces"; // interface { full_name: string }
-
-const prisma = new PrismaClient();
+import { GitHubRepo } from "./interfaces";
 
 (async () => {
   try {
@@ -28,7 +25,5 @@ const prisma = new PrismaClient();
     console.log("✅ Data inserted successfully!");
   } catch (error) {
     console.error("❌ Error inserting data:", error);
-  } finally {
-    await prisma.$disconnect();
   }
 })();
