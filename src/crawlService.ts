@@ -7,6 +7,7 @@ import {
   GitHubReleaseCommit,
   GitHubRepo,
 } from "./interfaces";
+import { PROXY_URL_1, PROXY_URL_2, PROXY_URL_3, PROXY_URL_4 } from "./config";
 /**
  * Create an axios instance with the specified proxy
  * @param proxyUrl - The proxy URL to use
@@ -47,6 +48,61 @@ export async function fetchTopRepos(
   );
 
   return res.data.items;
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function paginatedFetchTopRepos(
+  numRepos: number,
+  proxyUrl: string
+): Promise<GitHubRepo[]> {
+
+  const PER_PAGE = 100;
+  const totalPages = Math.ceil(numRepos / PER_PAGE);
+  const allRepos: GitHubRepo[] = [];
+
+  for (let page = 1; page <= totalPages; page++) {
+    let myProxyUrl = proxyUrl;
+    if (page % 4 == 0) {
+      myProxyUrl = PROXY_URL_1;
+    } else if (page % 4 == 1) {
+      myProxyUrl = PROXY_URL_2;
+    } else if (page % 4 == 2) {
+      myProxyUrl = PROXY_URL_3;
+    } else if (page % 4 == 3) {
+      myProxyUrl = PROXY_URL_4;
+    }
+    const axiosWithProxy = createAxiosInstance(proxyUrl);
+    try {
+      const res = await axiosWithProxy.get("https://api.github.com/search/repositories", {
+        params: {
+          q: "stars:>1",
+          sort: "stars",
+          order: "desc",
+          per_page: PER_PAGE,
+          page,
+        },
+      });
+
+      const pageRepos = res.data.items.map((r: any) => ({
+        full_name: r.full_name,
+      }));
+
+      allRepos.push(...pageRepos);
+
+      console.log(`✅ Fetched page ${page}/${totalPages}`);
+    } catch (error) {
+      console.error(`❌ Failed to fetch page ${page}:`, error);
+      break;
+    }
+
+    // Delay 1 second to avoid hitting rate limit
+    await delay(1000);
+  }
+
+  return allRepos;
 }
 
 /**
