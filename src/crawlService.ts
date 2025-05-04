@@ -162,7 +162,7 @@ export async function getAllReleasesAndCommits(
     const releases: GitHubRelease[] = releasesRes.data;
 
     if (!releases || releases.length === 0) {
-      console.log(`❌ Repo ${repoFullName} has no releases.`);
+      console.log(`Repo ${repoFullName} has no releases.`);
       return [];
     }
 
