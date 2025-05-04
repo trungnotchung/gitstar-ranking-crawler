@@ -10,6 +10,12 @@ function loadConfig() {
         .filter(Boolean)
     : [];
 
+  if (githubTokens.length === 0) {
+    throw new Error(
+      "No GitHub tokens provided. Please set GITHUB_TOKENS environment variable with comma-separated tokens."
+    );
+  }
+
   return {
     redis: {
       host: process.env.REDIS_HOST || "redis",
