@@ -1,4 +1,3 @@
-import { config } from "../config";
 import { getAllReleasesAndCommits } from "../crawlService";
 import repoQueue from "./queue";
 
@@ -13,10 +12,7 @@ repoQueue.process(async (job) => {
   console.log(`🚀 Worker ${workerId} Processing repo: ${repoFullName}`);
 
   try {
-    const result = await getAllReleasesAndCommits(
-      repoFullName,
-      config.github.github_token
-    );
+    const result = await getAllReleasesAndCommits(repoFullName);
     console.log(`✅ Worker ${workerId} completed repo: ${repoFullName}`);
     return { success: true, result, cached: false };
   } catch (error: any) {

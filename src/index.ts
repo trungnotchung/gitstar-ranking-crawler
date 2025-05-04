@@ -1,4 +1,3 @@
-import { config } from "./config";
 import {
   getAllReleasesAndCommits,
   paginatedFetchTopRepos,
@@ -11,15 +10,11 @@ const prisma = new PrismaClient();
 
 (async () => {
   try {
-    const repos: GitHubRepo[] = await paginatedFetchTopRepos(
-      5000,
-      config.github.github_token
-    );
+    const repos: GitHubRepo[] = await paginatedFetchTopRepos(5000);
 
     for (const repo of repos) {
       const releasesWithCommits = await getAllReleasesAndCommits(
-        repo.full_name,
-        config.github.github_token
+        repo.full_name
       );
       const [owner, name] = repo.full_name.split("/");
       await upsertRepoWithReleasesAndCommits(owner, name, releasesWithCommits);

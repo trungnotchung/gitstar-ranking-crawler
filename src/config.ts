@@ -4,15 +4,13 @@ import dotenv from "dotenv";
 dotenv.config();
 
 function loadConfig() {
-  const DEFAULT_PROXY_URL = "http://kmkydmkb:zu4v5jde2wij@216.10.27.159:6837";
-  const proxyUrls = process.env.PROXY_URLS
-    ? process.env.PROXY_URLS.split(",")
-        .map((url: string) => url.trim())
+  const githubTokens = process.env.GITHUB_TOKENS
+    ? process.env.GITHUB_TOKENS.split(",")
+        .map((token: string) => token.trim())
         .filter(Boolean)
-    : [DEFAULT_PROXY_URL];
+    : [];
 
   return {
-    proxyUrls: proxyUrls,
     redis: {
       host: process.env.REDIS_HOST || "redis",
       port: process.env.REDIS_PORT || "6379",
@@ -27,7 +25,7 @@ function loadConfig() {
       database_url: process.env.DATABASE_URL || "",
     },
     github: {
-      github_token: process.env.GITHUB_TOKEN || "",
+      tokens: githubTokens,
     },
   };
 }

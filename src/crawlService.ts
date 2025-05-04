@@ -1,21 +1,39 @@
 import axios, { AxiosInstance, AxiosResponse } from "axios";
 import fs from "fs";
+import { config } from "./config";
 import {
   GitHubCommit,
   GitHubRelease,
   GitHubReleaseCommit,
   GitHubRepo,
 } from "./interfaces";
+
+// Keep track of the current token index
+let currentTokenIndex = 0;
+
+/**
+ * Get the next GitHub token from the array, rotating through them
+ * @returns The next token to use
+ */
+function getNextToken(): string {
+  if (config.github.tokens.length === 0) {
+    throw new Error("No GitHub tokens available");
+  }
+  const token = config.github.tokens[currentTokenIndex];
+  currentTokenIndex = (currentTokenIndex + 1) % config.github.tokens.length;
+  return token;
+}
+
 /**
  * Create an axios instance with GitHub token authentication
- * @param githubToken - The GitHub token to use for authentication
  * @returns Configured axios instance
  */
-function createAxiosInstance(githubToken: string): AxiosInstance {
+function createAxiosInstance(): AxiosInstance {
+  const token = getNextToken();
   return axios.create({
     headers: {
       "User-Agent": "axios/1.8.4",
-      Authorization: `Bearer ${githubToken}`,
+      Authorization: `Bearer ${token}`,
     },
   });
 }
@@ -23,14 +41,10 @@ function createAxiosInstance(githubToken: string): AxiosInstance {
 /**
  * Fetch top repositories from GitHub
  * @param numRepos - Number of repositories to fetch
- * @param githubToken - The GitHub token to use for authentication
  * @returns Array of GitHub repositories
  */
-export async function fetchTopRepos(
-  numRepos: number,
-  githubToken: string
-): Promise<GitHubRepo[]> {
-  const axiosInstance = createAxiosInstance(githubToken);
+export async function fetchTopRepos(numRepos: number): Promise<GitHubRepo[]> {
+  const axiosInstance = createAxiosInstance();
   const res: AxiosResponse = await axiosInstance.get(
     "https://api.github.com/search/repositories",
     {
@@ -52,15 +66,14 @@ function delay(ms: number): Promise<void> {
 }
 
 export async function paginatedFetchTopRepos(
-  numRepos: number,
-  githubToken: string
+  numRepos: number
 ): Promise<GitHubRepo[]> {
   const PER_PAGE = 100;
   const totalPages = Math.ceil(numRepos / PER_PAGE);
   const allRepos: GitHubRepo[] = [];
 
   for (let page = 1; page <= totalPages; page++) {
-    const axiosInstance = createAxiosInstance(githubToken);
+    const axiosInstance = createAxiosInstance();
     try {
       const res = await axiosInstance.get(
         "https://api.github.com/search/repositories",
@@ -99,17 +112,15 @@ export async function paginatedFetchTopRepos(
  * @param repoFullName - Full name of the repository (e.g. "owner/repo")
  * @param baseTag - The base tag to compare from
  * @param headTag - The head tag to compare to
- * @param githubToken - The GitHub token to use for authentication
  * @returns Array of commits between the tags
  */
 async function getCommitsBetweenTags(
   repoFullName: string,
   baseTag: string,
-  headTag: string,
-  githubToken: string
+  headTag: string
 ): Promise<GitHubCommit[]> {
   const [owner, repo] = repoFullName.split("/");
-  const axiosInstance = createAxiosInstance(githubToken);
+  const axiosInstance = createAxiosInstance();
 
   try {
     const compareRes: AxiosResponse = await axiosInstance.get(
@@ -136,15 +147,13 @@ async function getCommitsBetweenTags(
 /**
  * Get all releases and their commits for a given repository
  * @param repoFullName - Full name of the repository (e.g. "owner/repo")
- * @param githubToken - The GitHub token to use for authentication
  * @returns Array of releases with their commits
  */
 export async function getAllReleasesAndCommits(
-  repoFullName: string,
-  githubToken: string
+  repoFullName: string
 ): Promise<GitHubReleaseCommit[]> {
   const [owner, repo] = repoFullName.split("/");
-  const axiosInstance = createAxiosInstance(githubToken);
+  const axiosInstance = createAxiosInstance();
 
   try {
     const releasesRes: AxiosResponse = await axiosInstance.get(
@@ -173,8 +182,7 @@ export async function getAllReleasesAndCommits(
       const commits = await getCommitsBetweenTags(
         repoFullName,
         nextRelease.tag_name,
-        currentRelease.tag_name,
-        githubToken
+        currentRelease.tag_name
       );
 
       result.push({

@@ -1,5 +1,4 @@
 // src/parallel-crawl/add-job.ts
-import { config } from "../config";
 import { fetchTopRepos } from "../crawlService";
 import repoQueue from "./queue";
 
@@ -8,7 +7,7 @@ interface JobData {
 }
 
 async function addJobToQueue(numRepos: number) {
-  const topRepos = await fetchTopRepos(numRepos, config.github.github_token);
+  const topRepos = await fetchTopRepos(numRepos);
   // Add the job to the queue
   for (const repo of topRepos) {
     console.log(`Adding job to queue for ${repo.full_name}`);
