@@ -1,6 +1,8 @@
 // src/parallel-crawl/add-job.ts
 import { fetchTopRepos } from "../crawlService";
-import repoQueue from "./queue";
+import { ServiceFactory } from "../serviceFactory";
+
+const repoQueue = ServiceFactory.getRepoQueue();
 
 interface JobData {
   repoFullName: string;

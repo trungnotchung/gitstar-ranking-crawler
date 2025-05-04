@@ -1,13 +1,10 @@
 import { Prisma } from '@prisma/client';
-import { PrismaClient } from './generated/prisma';
 import {
   GitHubReleaseCommit,
-  GitHubRepo,
-  GitHubCommit,
-  GitHubRelease
-} from './interfaces'; // Cập nhật đúng đường dẫn
+} from './interfaces';
+import { ServiceFactory } from './serviceFactory';
 
-const prisma = new PrismaClient();
+const prisma = ServiceFactory.getPrisma();
 
 export async function upsertRepoWithReleasesAndCommits(
   owner: string,
