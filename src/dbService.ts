@@ -27,13 +27,11 @@ export async function upsertRepoWithReleasesAndCommits(
 
       // Upsert Release
       const releaseRecord = await tx.release.upsert({
-        where: { title_repoId: { title: release.tag_name, repoId: repo.id } },
+        where: { tagname_repoId: { tagName: release.tag_name, repoId: repo.id } },
         update: {},
         create: {
-          title: release.tag_name,
-          description: release.body,
-          publishedAt: new Date(),
-          targetCommitish: '',
+          tagName: release.tag_name,
+          body: release.body,
           repoId: repo.id,
         },
       });
@@ -45,8 +43,6 @@ export async function upsertRepoWithReleasesAndCommits(
           create: {
             sha: commit.sha,
             message: commit.commit.message,
-            author: 'unknown',
-            date: new Date(),
             releaseId: releaseRecord.id,
           },
         });
