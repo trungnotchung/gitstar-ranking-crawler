@@ -1,6 +1,6 @@
 import Bull from "bull";
 import { config } from "./config";
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 export class ServiceFactory {
   private static prismaClient: PrismaClient | null = null;

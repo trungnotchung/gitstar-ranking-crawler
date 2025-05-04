@@ -1,27 +1,14 @@
-import {
-  getAllReleasesAndCommits,
-  paginatedFetchTopRepos,
-} from "./crawlService";
-import { upsertRepoWithReleasesAndCommits } from "./dbService";
-import { GitHubRepo } from "./interfaces";
+import { setupDailyJob } from "./parallel-crawl/add-jobs";
 import { ServiceFactory } from "./serviceFactory";
 
-(async () => {
+async function main() {
   try {
-    const repos: GitHubRepo[] = await paginatedFetchTopRepos(5000);
-
-    for (const repo of repos) {
-      const releasesWithCommits = await getAllReleasesAndCommits(
-        repo.full_name
-      );
-      const [owner, name] = repo.full_name.split("/");
-      await upsertRepoWithReleasesAndCommits(owner, name, releasesWithCommits);
-    }
-
-    console.log("Data inserted successfully!");
+    await setupDailyJob();
   } catch (error) {
-    console.error("Error inserting data:", error);
+    console.error("Error:", error);
   } finally {
     await ServiceFactory.shutdown();
   }
-})();
+}
+
+main();
