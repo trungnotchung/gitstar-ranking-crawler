@@ -1,7 +1,9 @@
 import fs from "fs";
 import { getAllReleasesAndCommits } from "../crawlService";
-import repoQueue from "./queue";
 import { config } from "../config";
+import { ServiceFactory } from "../serviceFactory";
+
+const repoQueue = ServiceFactory.getRepoQueue();
 
 // Get worker ID from environment variable or use default
 const workerId = process.env.WORKER_ID || "1";
