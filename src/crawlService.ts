@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosResponse } from "axios";
 import fs from "fs";
+import { HttpsProxyAgent } from "https-proxy-agent";
 import { config } from "./config";
 import {
   GitHubCommit,
@@ -10,6 +11,7 @@ import {
 
 // Keep track of the current token index
 let currentTokenIndex = 0;
+let currentProxyIndex = 0;
 
 /**
  * Get the next GitHub token from the array, rotating through them
@@ -25,17 +27,37 @@ function getNextToken(): string {
 }
 
 /**
- * Create an axios instance with GitHub token authentication
+ * Get the next proxy URL from the array, rotating through them
+ * @returns The next proxy URL to use, or undefined if no proxies are configured
+ */
+function getNextProxy(): string | undefined {
+  if (config.proxyUrls.length === 0) {
+    return undefined;
+  }
+  const proxy = config.proxyUrls[currentProxyIndex];
+  currentProxyIndex = (currentProxyIndex + 1) % config.proxyUrls.length;
+  return proxy;
+}
+
+/**
+ * Create an axios instance with GitHub token authentication and optional proxy
  * @returns Configured axios instance
  */
 function createAxiosInstance(): AxiosInstance {
   const token = getNextToken();
-  return axios.create({
+  const proxyUrl = getNextProxy();
+  const config: any = {
     headers: {
       "User-Agent": "axios/1.8.4",
       Authorization: `Bearer ${token}`,
     },
-  });
+  };
+
+  if (proxyUrl) {
+    config.httpsAgent = new HttpsProxyAgent(proxyUrl);
+  }
+
+  return axios.create(config);
 }
 
 /**

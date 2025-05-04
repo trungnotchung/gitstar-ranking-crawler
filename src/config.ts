@@ -16,6 +16,12 @@ function loadConfig() {
     );
   }
 
+  const proxyUrls = process.env.PROXY_URLS
+    ? process.env.PROXY_URLS.split(",")
+        .map((url: string) => url.trim())
+        .filter(Boolean)
+    : [];
+
   return {
     redis: {
       host: process.env.REDIS_HOST || "redis",
@@ -33,6 +39,7 @@ function loadConfig() {
     github: {
       tokens: githubTokens,
     },
+    proxyUrls: proxyUrls,
   };
 }
 
