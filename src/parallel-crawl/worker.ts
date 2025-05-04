@@ -1,6 +1,6 @@
 import {
   getAllReleasesAndCommits,
-  paginatedFetchTopRepos,
+  crawlTopRepos,
 } from "../crawlService";
 import { ServiceFactory } from "../serviceFactory";
 
@@ -37,7 +37,7 @@ repoQueue.process("fetch-top-repos", async (job) => {
   console.log(`Worker ${workerId} Fetching top ${numRepos} repositories`);
 
   try {
-    const repos = await paginatedFetchTopRepos(numRepos);
+    const repos = await crawlTopRepos(numRepos);
     console.log(`Fetched ${repos.length} repositories`);
 
     for (const repo of repos) {

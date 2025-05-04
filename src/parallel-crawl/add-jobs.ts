@@ -1,10 +1,10 @@
 // src/parallel-crawl/add-job.ts
-import { paginatedFetchTopRepos } from "../crawlService";
+import { crawlTopRepos } from "../crawlService";
 import { ServiceFactory } from "../serviceFactory";
 
 async function addJobsToQueue(numRepos: number) {
   const queue = ServiceFactory.getRepoQueue();
-  const topRepos = await paginatedFetchTopRepos(numRepos);
+  const topRepos = await crawlTopRepos(numRepos);
 
   for (const repo of topRepos) {
     await queue.add(
