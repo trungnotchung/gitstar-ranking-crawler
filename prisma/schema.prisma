@@ -6,7 +6,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -33,7 +32,7 @@ model Release {
   repoId  String
   commits Commit[]
 
-  @@unique([tagName, repoId])
+  @@unique([tagName, repoId], name: "tagname_repoId")
 }
 
 model Commit {
