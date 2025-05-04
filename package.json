@@ -8,11 +8,9 @@
     "build": "tsc",
     "watch": "tsc -w",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "add-jobs": "ts-node src/parallel-crawl/add-jobs.ts",
     "remove-jobs": "ts-node src/parallel-crawl/remove-jobs.ts",
     "worker": "ts-node src/parallel-crawl/worker.ts",
     "docker:up": "docker compose up --build",
-    "docker:redis": "docker-compose up -d redis",
     "prisma:migrate": "prisma migrate dev --name init && prisma generate"
   },
   "repository": {

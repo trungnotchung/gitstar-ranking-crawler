@@ -1,31 +1,47 @@
 // src/parallel-crawl/add-job.ts
-import { config } from "../config";
-import { fetchTopRepos } from "../crawlService";
+import { paginatedFetchTopRepos } from "../crawlService";
 import { ServiceFactory } from "../serviceFactory";
 
-const repoQueue = ServiceFactory.getRepoQueue();
+async function addJobsToQueue(numRepos: number) {
+  const queue = ServiceFactory.getRepoQueue();
+  const topRepos = await paginatedFetchTopRepos(numRepos);
 
-interface JobData {
-  repoFullName: string;
-}
-
-async function addJobToQueue(numRepos: number) {
-  const topRepos = await fetchTopRepos(numRepos, config.proxyUrls[0]);
-  // Add the job to the queue
   for (const repo of topRepos) {
-    console.log(`Adding job to queue for ${repo.full_name}`);
-    const job = await repoQueue.add({ repoFullName: repo.full_name });
-    console.log(`Job ${repo.full_name} added to queue with ID: ${job.id}`);
+    await queue.add(
+      "crawl-repo",
+      {
+        repoFullName: repo.full_name,
+      },
+      {
+        attempts: 3,
+        backoff: {
+          type: "exponential",
+          delay: 1000,
+        },
+      }
+    );
   }
+
+  console.log(`Added ${topRepos.length} jobs to the queue`);
 }
 
-// Wait for job completion or failure using the queue event listeners
-repoQueue.on("completed", (job) => {
-  console.log(`Job with ID ${job.id} completed.`);
-});
+export async function setupDailyJob() {
+  const queue = ServiceFactory.getRepoQueue();
 
-repoQueue.on("failed", (job, err) => {
-  console.log(`Job with ID ${job.id} failed with error:`, err);
-});
+  // Create a repeatable job that runs every 24 hours
+  await queue.add(
+    "fetch-top-repos",
+    { numRepos: 5000 },
+    {
+      repeat: {
+        every: 24 * 60 * 60 * 1000, // Every 24 hours in milliseconds
+      },
+    }
+  );
 
-addJobToQueue(100);
+  // Trigger the initial fetch
+  await addJobsToQueue(5000);
+
+  console.log("Set up daily repository fetching");
+  console.log("Run 'pnpm run docker:up' to start processing the jobs");
+}

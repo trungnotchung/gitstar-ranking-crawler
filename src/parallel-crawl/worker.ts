@@ -1,6 +1,7 @@
-import fs from "fs";
-import { getAllReleasesAndCommits } from "../crawlService";
-import { config } from "../config";
+import {
+  getAllReleasesAndCommits,
+  paginatedFetchTopRepos,
+} from "../crawlService";
 import { ServiceFactory } from "../serviceFactory";
 
 const repoQueue = ServiceFactory.getRepoQueue();
@@ -8,27 +9,58 @@ const repoQueue = ServiceFactory.getRepoQueue();
 // Get worker ID from environment variable or use default
 const workerId = process.env.WORKER_ID || "1";
 
-const currentProxyUrl = config.proxyUrls[parseInt(workerId) - 1];
-
 /**
- * Process each job from the queue
+ * Process individual repository crawling
  */
-repoQueue.process(async (job) => {
+repoQueue.process("crawl-repo", async (job) => {
   const repoFullName = job.data.repoFullName;
-  console.log(
-    `🚀 Worker ${workerId} (Proxy: ${currentProxyUrl}) Processing repo: ${repoFullName}`
-  );
+  console.log(`🚀 Worker ${workerId} Processing repo: ${repoFullName}`);
 
   try {
-    const result = await getAllReleasesAndCommits(
-      repoFullName,
-      currentProxyUrl
-    );
+    const result = await getAllReleasesAndCommits(repoFullName);
     console.log(`✅ Worker ${workerId} completed repo: ${repoFullName}`);
     return { success: true, result, cached: false };
   } catch (error: any) {
     console.error(
       `❌ Worker ${workerId} error processing ${repoFullName}:`,
+      error.message
+    );
+    throw error;
+  }
+});
+
+/**
+ * Process top repositories fetching
+ */
+repoQueue.process("fetch-top-repos", async (job) => {
+  const numRepos = job.data.numRepos || 5000;
+  console.log(`Worker ${workerId} Fetching top ${numRepos} repositories`);
+
+  try {
+    const repos = await paginatedFetchTopRepos(numRepos);
+    console.log(`Fetched ${repos.length} repositories`);
+
+    for (const repo of repos) {
+      await repoQueue.add(
+        "crawl-repo",
+        {
+          repoFullName: repo.full_name,
+        },
+        {
+          attempts: 3,
+          backoff: {
+            type: "exponential",
+            delay: 1000,
+          },
+        }
+      );
+    }
+
+    console.log(`Added ${repos.length} jobs to the queue`);
+    return { success: true };
+  } catch (error: any) {
+    console.error(
+      `❌ Worker ${workerId} error fetching top repositories:`,
       error.message
     );
     throw error;

@@ -1,14 +1,14 @@
-version: '3'
+version: "3"
 
 services:
   redis:
-    image: redis
+    image: redis:latest
     ports:
-      - "6379:6379"  
+      - "6379:6379"
 
   worker1:
     build: .
-    command: sh -c "npm run worker"
+    command: sh -c "pnpm worker"
     environment:
       - WORKER_ID=1
       - REDIS_URL=redis://redis:6379
@@ -19,7 +19,7 @@ services:
 
   worker2:
     build: .
-    command: sh -c "npm run worker"
+    command: sh -c "pnpm worker"
     environment:
       - WORKER_ID=2
       - REDIS_URL=redis://redis:6379
@@ -30,7 +30,7 @@ services:
 
   worker3:
     build: .
-    command: sh -c "npm run worker"
+    command: sh -c "pnpm worker"
     environment:
       - WORKER_ID=3
       - REDIS_URL=redis://redis:6379
@@ -41,7 +41,7 @@ services:
 
   worker4:
     build: .
-    command: sh -c "npm run worker"
+    command: sh -c "pnpm worker"
     environment:
       - WORKER_ID=4
       - REDIS_URL=redis://redis:6379

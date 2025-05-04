@@ -1,6 +1,6 @@
 import Bull from "bull";
 import { config } from "./config";
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 export class ServiceFactory {
   private static prismaClient: PrismaClient | null = null;
@@ -15,10 +15,10 @@ export class ServiceFactory {
 
   static getRepoQueue(): Bull.Queue {
     if (!this.repoQueue) {
-      console.log(`Connecting to Redis at: ${config.redisConfig.url}`);
-      this.repoQueue = new Bull("repo-crawl-queue", config.redisConfig.url);
+      console.log(`Connecting to Redis at: ${config.redis.url}`);
+      this.repoQueue = new Bull("repo-crawl-queue", config.redis.url);
     }
-    return this.repoQueue
+    return this.repoQueue;
   }
 
   public static async shutdown(): Promise<void> {

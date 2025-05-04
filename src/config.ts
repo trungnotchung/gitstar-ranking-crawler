@@ -4,16 +4,26 @@ import dotenv from "dotenv";
 dotenv.config();
 
 function loadConfig() {
-  const DEFAULT_PROXY_URL = "http://kmkydmkb:zu4v5jde2wij@216.10.27.159:6837";
+  const githubTokens = process.env.GITHUB_TOKENS
+    ? process.env.GITHUB_TOKENS.split(",")
+        .map((token: string) => token.trim())
+        .filter(Boolean)
+    : [];
+
+  if (githubTokens.length === 0) {
+    throw new Error(
+      "No GitHub tokens provided. Please set GITHUB_TOKENS environment variable with comma-separated tokens."
+    );
+  }
+
   const proxyUrls = process.env.PROXY_URLS
     ? process.env.PROXY_URLS.split(",")
         .map((url: string) => url.trim())
         .filter(Boolean)
-    : [DEFAULT_PROXY_URL];
+    : [];
 
   return {
-    proxyUrls: proxyUrls,
-    redisConfig: {
+    redis: {
       host: process.env.REDIS_HOST || "redis",
       port: process.env.REDIS_PORT || "6379",
       url:
@@ -23,12 +33,13 @@ function loadConfig() {
           ":" +
           (process.env.REDIS_PORT || "6379"),
     },
-    dbConfig: {
+    postreg: {
       database_url: process.env.DATABASE_URL || "",
     },
-    githubConfig: {
-      github_token: process.env.GITHUB_TOKEN || "",
+    github: {
+      tokens: githubTokens,
     },
+    proxyUrls: proxyUrls,
   };
 }
 
