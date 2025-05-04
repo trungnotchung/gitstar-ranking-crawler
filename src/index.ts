@@ -5,6 +5,7 @@ import {
 } from "./crawlService";
 import { upsertRepoWithReleasesAndCommits } from "./dbService";
 import { GitHubRepo } from "./interfaces";
+import { ServiceFactory } from "./serviceFactory";
 
 (async () => {
   try {
@@ -25,5 +26,7 @@ import { GitHubRepo } from "./interfaces";
     console.log("✅ Data inserted successfully!");
   } catch (error) {
     console.error("❌ Error inserting data:", error);
+  } finally {
+    await ServiceFactory.shutdown();
   }
 })();
