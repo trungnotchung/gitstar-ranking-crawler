@@ -13,7 +13,7 @@ function loadConfig() {
 
   return {
     proxyUrls: proxyUrls,
-    redisConfig: {
+    redis: {
       host: process.env.REDIS_HOST || "redis",
       port: process.env.REDIS_PORT || "6379",
       url:
@@ -23,10 +23,10 @@ function loadConfig() {
           ":" +
           (process.env.REDIS_PORT || "6379"),
     },
-    dbConfig: {
+    postreg: {
       database_url: process.env.DATABASE_URL || "",
     },
-    githubConfig: {
+    github: {
       github_token: process.env.GITHUB_TOKEN || "",
     },
   };
