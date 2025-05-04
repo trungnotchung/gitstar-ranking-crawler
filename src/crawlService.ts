@@ -1,13 +1,8 @@
-import axios, { AxiosInstance, AxiosResponse } from "axios";
+import axios, { AxiosError, AxiosInstance, AxiosResponse } from "axios";
 import fs from "fs";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { config } from "./config";
-import {
-  GitHubCommit,
-  GitHubRelease,
-  GitHubReleaseCommit,
-  GitHubRepo,
-} from "./interfaces";
+import { GitHubCommit, GitHubReleaseCommit, GitHubRepo } from "./interfaces";
 
 // Keep track of the current token index
 let currentTokenIndex = 0;
@@ -61,26 +56,98 @@ function createAxiosInstance(): AxiosInstance {
 }
 
 /**
- * Fetch top repositories from GitHub
+ * Make a request with exponential backoff retry
+ * @param requestFn - The function that makes the request
+ * @param maxRetries - Maximum number of retries
+ * @param initialDelay - Initial delay in milliseconds
+ * @returns The response from the request
+ */
+async function makeRequestWithRetry<T>(
+  requestFn: () => Promise<T>,
+  maxRetries: number = 3,
+  initialDelay: number = 1000
+): Promise<T> {
+  let lastError: Error | null = null;
+  let delay = initialDelay;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await requestFn();
+    } catch (error) {
+      lastError = error as Error;
+
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError;
+        console.error(
+          `Request failed (attempt ${attempt + 1}/${maxRetries}):`,
+          axiosError.response?.status,
+          axiosError.response?.statusText,
+          axiosError.response?.data
+        );
+
+        // Check if we should retry based on the error
+        if (axiosError.response?.status === 403) {
+          const resetTime = axiosError.response.headers["x-ratelimit-reset"];
+          if (resetTime) {
+            const waitTime = Math.max(
+              0,
+              parseInt(resetTime) * 1000 - Date.now()
+            );
+            console.log(`Rate limit hit, waiting ${waitTime}ms`);
+
+            // Return a promise that will be resolved after the wait time
+            return new Promise((resolve, reject) => {
+              setTimeout(async () => {
+                try {
+                  const result = await makeRequestWithRetry(
+                    requestFn,
+                    maxRetries - attempt,
+                    delay
+                  );
+                  resolve(result);
+                } catch (err) {
+                  reject(err);
+                }
+              }, waitTime);
+            });
+          }
+        }
+      }
+
+      // Exponential backoff
+      if (attempt < maxRetries - 1) {
+        console.log(`Retrying in ${delay}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        delay *= 2; // Double the delay for next retry
+      }
+    }
+  }
+
+  throw lastError || new Error("Request failed after all retries");
+}
+
+/**
+ * Fetch top repositories from GitHub with retry
  * @param numRepos - Number of repositories to fetch
  * @returns Array of GitHub repositories
  */
 export async function fetchTopRepos(numRepos: number): Promise<GitHubRepo[]> {
-  const axiosInstance = createAxiosInstance();
-  const res: AxiosResponse = await axiosInstance.get(
-    "https://api.github.com/search/repositories",
-    {
-      params: {
-        q: "stars:>1",
-        sort: "stars",
-        order: "desc",
-        per_page: numRepos,
-        page: 1,
-      },
-    }
-  );
-
-  return res.data.items;
+  return makeRequestWithRetry(async () => {
+    const axiosInstance = createAxiosInstance();
+    const res: AxiosResponse = await axiosInstance.get(
+      "https://api.github.com/search/repositories",
+      {
+        params: {
+          q: "stars:>1",
+          sort: "stars",
+          order: "desc",
+          per_page: numRepos,
+          page: 1,
+        },
+      }
+    );
+    return res.data.items;
+  });
 }
 
 function delay(ms: number): Promise<void> {
@@ -95,27 +162,28 @@ export async function paginatedFetchTopRepos(
   const allRepos: GitHubRepo[] = [];
 
   for (let page = 1; page <= totalPages; page++) {
-    const axiosInstance = createAxiosInstance();
     try {
-      const res = await axiosInstance.get(
-        "https://api.github.com/search/repositories",
-        {
-          params: {
-            q: "stars:>1",
-            sort: "stars",
-            order: "desc",
-            per_page: PER_PAGE,
-            page,
-          },
-        }
-      );
+      const pageRepos = await makeRequestWithRetry(async () => {
+        const axiosInstance = createAxiosInstance();
+        const res = await axiosInstance.get(
+          "https://api.github.com/search/repositories",
+          {
+            params: {
+              q: "stars:>1",
+              sort: "stars",
+              order: "desc",
+              per_page: PER_PAGE,
+              page,
+            },
+          }
+        );
 
-      const pageRepos = res.data.items.map((r: any) => ({
-        full_name: r.full_name,
-      }));
+        return res.data.items.map((r: any) => ({
+          full_name: r.full_name,
+        }));
+      });
 
       allRepos.push(...pageRepos);
-
       console.log(`✅ Fetched page ${page}/${totalPages}`);
     } catch (error) {
       console.error(`❌ Failed to fetch page ${page}:`, error);
@@ -123,7 +191,7 @@ export async function paginatedFetchTopRepos(
     }
 
     // Delay 1 second to avoid hitting rate limit
-    await delay(1000);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
   return allRepos;
@@ -142,19 +210,21 @@ async function getCommitsBetweenTags(
   headTag: string
 ): Promise<GitHubCommit[]> {
   const [owner, repo] = repoFullName.split("/");
-  const axiosInstance = createAxiosInstance();
 
   try {
-    const compareRes: AxiosResponse = await axiosInstance.get(
-      `https://api.github.com/repos/${owner}/${repo}/compare/${baseTag}...${headTag}`
-    );
+    const commits = await makeRequestWithRetry(async () => {
+      const axiosInstance = createAxiosInstance();
+      const compareRes: AxiosResponse = await axiosInstance.get(
+        `https://api.github.com/repos/${owner}/${repo}/compare/${baseTag}...${headTag}`
+      );
 
-    const commits: GitHubCommit[] = compareRes.data.commits.map((c: any) => ({
-      sha: c.sha,
-      commit: {
-        message: c.commit.message,
-      },
-    }));
+      return compareRes.data.commits.map((c: any) => ({
+        sha: c.sha,
+        commit: {
+          message: c.commit.message,
+        },
+      }));
+    });
 
     return commits;
   } catch (err: any) {
@@ -175,13 +245,15 @@ export async function getAllReleasesAndCommits(
   repoFullName: string
 ): Promise<GitHubReleaseCommit[]> {
   const [owner, repo] = repoFullName.split("/");
-  const axiosInstance = createAxiosInstance();
 
   try {
-    const releasesRes: AxiosResponse = await axiosInstance.get(
-      `https://api.github.com/repos/${owner}/${repo}/releases`
-    );
-    const releases: GitHubRelease[] = releasesRes.data;
+    const releases = await makeRequestWithRetry(async () => {
+      const axiosInstance = createAxiosInstance();
+      const releasesRes: AxiosResponse = await axiosInstance.get(
+        `https://api.github.com/repos/${owner}/${repo}/releases`
+      );
+      return releasesRes.data;
+    });
 
     if (!releases || releases.length === 0) {
       console.log(`Repo ${repoFullName} has no releases.`);
