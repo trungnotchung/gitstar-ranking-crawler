@@ -1,6 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from "axios";
 import fs from "fs";
-import { HttpsProxyAgent } from "https-proxy-agent";
 import {
   GitHubCommit,
   GitHubRelease,
@@ -8,16 +7,15 @@ import {
   GitHubRepo,
 } from "./interfaces";
 /**
- * Create an axios instance with the specified proxy
- * @param proxyUrl - The proxy URL to use
+ * Create an axios instance with GitHub token authentication
+ * @param githubToken - The GitHub token to use for authentication
  * @returns Configured axios instance
  */
-function createAxiosInstance(proxyUrl: string): AxiosInstance {
-  const agent = new HttpsProxyAgent(proxyUrl);
+function createAxiosInstance(githubToken: string): AxiosInstance {
   return axios.create({
-    httpsAgent: agent,
     headers: {
       "User-Agent": "axios/1.8.4",
+      Authorization: `Bearer ${githubToken}`,
     },
   });
 }
@@ -25,15 +23,15 @@ function createAxiosInstance(proxyUrl: string): AxiosInstance {
 /**
  * Fetch top repositories from GitHub
  * @param numRepos - Number of repositories to fetch
- * @param proxyUrl - The proxy URL to use
+ * @param githubToken - The GitHub token to use for authentication
  * @returns Array of GitHub repositories
  */
 export async function fetchTopRepos(
   numRepos: number,
-  proxyUrl: string
+  githubToken: string
 ): Promise<GitHubRepo[]> {
-  const axiosWithProxy = createAxiosInstance(proxyUrl);
-  const res: AxiosResponse = await axiosWithProxy.get(
+  const axiosInstance = createAxiosInstance(githubToken);
+  const res: AxiosResponse = await axiosInstance.get(
     "https://api.github.com/search/repositories",
     {
       params: {
@@ -55,16 +53,16 @@ function delay(ms: number): Promise<void> {
 
 export async function paginatedFetchTopRepos(
   numRepos: number,
-  proxyUrl: string
+  githubToken: string
 ): Promise<GitHubRepo[]> {
   const PER_PAGE = 100;
   const totalPages = Math.ceil(numRepos / PER_PAGE);
   const allRepos: GitHubRepo[] = [];
 
   for (let page = 1; page <= totalPages; page++) {
-    const axiosWithProxy = createAxiosInstance(proxyUrl);
+    const axiosInstance = createAxiosInstance(githubToken);
     try {
-      const res = await axiosWithProxy.get(
+      const res = await axiosInstance.get(
         "https://api.github.com/search/repositories",
         {
           params: {
@@ -101,20 +99,20 @@ export async function paginatedFetchTopRepos(
  * @param repoFullName - Full name of the repository (e.g. "owner/repo")
  * @param baseTag - The base tag to compare from
  * @param headTag - The head tag to compare to
- * @param proxyUrl - The proxy URL to use
+ * @param githubToken - The GitHub token to use for authentication
  * @returns Array of commits between the tags
  */
 async function getCommitsBetweenTags(
   repoFullName: string,
   baseTag: string,
   headTag: string,
-  proxyUrl: string
+  githubToken: string
 ): Promise<GitHubCommit[]> {
   const [owner, repo] = repoFullName.split("/");
-  const axiosWithProxy = createAxiosInstance(proxyUrl);
+  const axiosInstance = createAxiosInstance(githubToken);
 
   try {
-    const compareRes: AxiosResponse = await axiosWithProxy.get(
+    const compareRes: AxiosResponse = await axiosInstance.get(
       `https://api.github.com/repos/${owner}/${repo}/compare/${baseTag}...${headTag}`
     );
 
@@ -138,18 +136,18 @@ async function getCommitsBetweenTags(
 /**
  * Get all releases and their commits for a given repository
  * @param repoFullName - Full name of the repository (e.g. "owner/repo")
- * @param proxyUrl - The proxy URL to use
+ * @param githubToken - The GitHub token to use for authentication
  * @returns Array of releases with their commits
  */
 export async function getAllReleasesAndCommits(
   repoFullName: string,
-  proxyUrl: string
+  githubToken: string
 ): Promise<GitHubReleaseCommit[]> {
   const [owner, repo] = repoFullName.split("/");
-  const axiosWithProxy = createAxiosInstance(proxyUrl);
+  const axiosInstance = createAxiosInstance(githubToken);
 
   try {
-    const releasesRes: AxiosResponse = await axiosWithProxy.get(
+    const releasesRes: AxiosResponse = await axiosInstance.get(
       `https://api.github.com/repos/${owner}/${repo}/releases`
     );
     const releases: GitHubRelease[] = releasesRes.data;
@@ -160,9 +158,6 @@ export async function getAllReleasesAndCommits(
     }
 
     const result: GitHubReleaseCommit[] = [];
-
-    // log releases length
-    // console.log(`releases length: ${releases.length}`);
 
     // Get commits for each release
     for (let i = 0; i < releases.length; i++) {
@@ -175,14 +170,11 @@ export async function getAllReleasesAndCommits(
         continue;
       }
 
-      // console.log(`currentRelease: ${currentRelease.tag_name}`);
-      // console.log(`nextRelease: ${nextRelease.tag_name}`);
-
       const commits = await getCommitsBetweenTags(
         repoFullName,
         nextRelease.tag_name,
         currentRelease.tag_name,
-        proxyUrl
+        githubToken
       );
 
       result.push({
@@ -214,5 +206,3 @@ export async function getAllReleasesAndCommits(
     return [];
   }
 }
-
-// getAllReleasesAndCommits("mrdoob/three.js", PROXY_URL_3);

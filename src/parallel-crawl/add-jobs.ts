@@ -8,7 +8,7 @@ interface JobData {
 }
 
 async function addJobToQueue(numRepos: number) {
-  const topRepos = await fetchTopRepos(numRepos, config.proxyUrls[0]);
+  const topRepos = await fetchTopRepos(numRepos, config.github.github_token);
   // Add the job to the queue
   for (const repo of topRepos) {
     console.log(`Adding job to queue for ${repo.full_name}`);

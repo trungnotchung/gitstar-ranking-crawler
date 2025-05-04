@@ -13,13 +13,13 @@ const prisma = new PrismaClient();
   try {
     const repos: GitHubRepo[] = await paginatedFetchTopRepos(
       5000,
-      config.proxyUrls[0]
+      config.github.github_token
     );
 
     for (const repo of repos) {
       const releasesWithCommits = await getAllReleasesAndCommits(
         repo.full_name,
-        config.proxyUrls[0]
+        config.github.github_token
       );
       const [owner, name] = repo.full_name.split("/");
       await upsertRepoWithReleasesAndCommits(owner, name, releasesWithCommits);
