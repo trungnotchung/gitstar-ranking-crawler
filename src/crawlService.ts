@@ -1,5 +1,4 @@
 import axios, { AxiosError, AxiosInstance, AxiosResponse } from "axios";
-import fs from "fs";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { config } from "./config";
 import { GitHubCommit, GitHubReleaseCommit, GitHubRepo } from "./interfaces";
@@ -287,17 +286,6 @@ export async function getAllReleasesAndCommits(
         commits,
       });
     }
-
-    // Read existing cache
-    const cacheFile = "cache.json";
-    let cache: Record<string, GitHubReleaseCommit[]> = {};
-    if (fs.existsSync(cacheFile)) {
-      cache = JSON.parse(fs.readFileSync(cacheFile, "utf-8"));
-    }
-
-    // Update cache with new data
-    cache[repoFullName] = result;
-    fs.writeFileSync(cacheFile, JSON.stringify(cache, null, 2));
 
     return result;
   } catch (err: any) {

@@ -79,5 +79,57 @@ services:
     volumes:
       - .:/app
 
+  worker5:
+    build: .
+    command: sh -c "pnpm worker"
+    environment:
+      - WORKER_ID=5
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://postgres:postgres@postgres-db:5432/gitstar
+    depends_on:
+      - redis
+      - postgres-db
+    volumes:
+      - .:/app
+
+  worker6:
+    build: .
+    command: sh -c "pnpm worker"
+    environment:
+      - WORKER_ID=6
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://postgres:postgres@postgres-db:5432/gitstar
+    depends_on:
+      - redis
+      - postgres-db
+    volumes:
+      - .:/app
+
+  worker7:
+    build: .
+    command: sh -c "pnpm worker"
+    environment:
+      - WORKER_ID=7
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://postgres:postgres@postgres-db:5432/gitstar
+    depends_on:
+      - redis
+      - postgres-db
+    volumes:
+      - .:/app
+
+  worker8:
+    build: .
+    command: sh -c "pnpm worker"
+    environment:
+      - WORKER_ID=8
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://postgres:postgres@postgres-db:5432/gitstar
+    depends_on:
+      - redis
+      - postgres-db
+    volumes:
+      - .:/app
+
 volumes:
   postgres_data:
