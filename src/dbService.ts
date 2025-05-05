@@ -80,7 +80,7 @@ export async function upsertRepoWithReleasesAndCommits(
       return { success: true };
     }, {
       maxWait: 5000,
-      timeout: 20000
+      timeout: 90000
     });
   });
 }
