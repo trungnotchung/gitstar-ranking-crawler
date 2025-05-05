@@ -1,6 +1,27 @@
 version: "3"
 
 services:
+  postgres-db:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: gitstar
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  migrate:
+    build: .
+    command: sh -c "pnpm prisma migrate dev"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres-db:5432/gitstar
+    depends_on:
+      - postgres-db
+    volumes:
+      - .:/app
+
   redis:
     image: redis:latest
     ports:
@@ -12,8 +33,10 @@ services:
     environment:
       - WORKER_ID=1
       - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://postgres:postgres@postgres-db:5432/gitstar
     depends_on:
       - redis
+      - postgres-db
     volumes:
       - .:/app
 
@@ -23,8 +46,10 @@ services:
     environment:
       - WORKER_ID=2
       - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://postgres:postgres@postgres-db:5432/gitstar
     depends_on:
       - redis
+      - postgres-db
     volumes:
       - .:/app
 
@@ -34,8 +59,10 @@ services:
     environment:
       - WORKER_ID=3
       - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://postgres:postgres@postgres-db:5432/gitstar
     depends_on:
       - redis
+      - postgres-db
     volumes:
       - .:/app
 
@@ -45,7 +72,12 @@ services:
     environment:
       - WORKER_ID=4
       - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://postgres:postgres@postgres-db:5432/gitstar
     depends_on:
       - redis
+      - postgres-db
     volumes:
       - .:/app
+
+volumes:
+  postgres_data:
