@@ -80,17 +80,18 @@ async function makeRequestWithRetry<T>(
 
       if (axios.isAxiosError(error)) {
         const axiosError = error as AxiosError;
+        // Skip retries for 422 and 404 errors
+        if (axiosError.response?.status === 422 || axiosError.response?.status === 404) {
+          console.log(`ℹ️ Skipping retry for ${axiosError.response?.status} error`);
+          throw error;
+        }
+
         console.error(
           `Request failed (attempt ${attempt + 1}/${maxRetries}):`,
           axiosError.response?.status,
           axiosError.response?.statusText,
           axiosError.response?.data
         );
-
-        // Skip retries for 422 and 404 errors
-        if (axiosError.response?.status === 422 || axiosError.response?.status === 404) {
-          throw error;
-        }
 
         // Check if we should retry based on the error
         if (axiosError.response?.status === 403) {
