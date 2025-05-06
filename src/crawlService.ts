@@ -87,6 +87,11 @@ async function makeRequestWithRetry<T>(
           axiosError.response?.data
         );
 
+        // Skip retries for 422 errors
+        if (axiosError.response?.status === 422) {
+          throw error;
+        }
+
         // Check if we should retry based on the error
         if (axiosError.response?.status === 403) {
           const resetTime = axiosError.response.headers["x-ratelimit-reset"];
@@ -306,6 +311,10 @@ async function getCommitsBetweenTags(
 
     return commits;
   } catch (err: any) {
+    if (err.response?.status === 422) {
+      console.log(`ℹ️ Skipping comparison between ${baseTag} and ${headTag} for ${repoFullName} due to diff generation timeout`);
+      return [];
+    }
     console.error(
       `⚠️ Error getting commits between ${baseTag} and ${headTag} for ${repoFullName}:`,
       err.message
@@ -347,7 +356,7 @@ export async function getAllReleasesAndCommits(
 
       // For the last release, we can't compare with next release
       if (!nextRelease) {
-        console.log(`ℹ️ Last release reached: ${currentRelease.tag_name}`);
+        // console.log(`ℹ️ Last release reached: ${currentRelease.tag_name}`);
         continue;
       }
 
