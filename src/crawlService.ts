@@ -1,14 +1,13 @@
 import axios, { AxiosError, AxiosInstance, AxiosResponse } from "axios";
 import * as cheerio from "cheerio";
-import { HttpsProxyAgent } from "https-proxy-agent";
 import { config } from "./config";
 import { GitHubCommit, GitHubReleaseCommit, GitHubRepo } from "./interfaces";
 
 // Keep track of the current token index
 let currentTokenIndex = 0;
-let currentProxyIndex = 0;
 
-const GITHUB_STAR_RANKING_URL = 'https://gitstar-ranking.com/repositories/?page={page}';  
+const GITHUB_STAR_RANKING_URL =
+  "https://gitstar-ranking.com/repositories/?page={page}";
 
 /**
  * Get the next GitHub token from the array, rotating through them
@@ -24,35 +23,17 @@ function getNextToken(): string {
 }
 
 /**
- * Get the next proxy URL from the array, rotating through them
- * @returns The next proxy URL to use, or undefined if no proxies are configured
- */
-function getNextProxy(): string | undefined {
-  if (config.proxyUrls.length === 0) {
-    return undefined;
-  }
-  const proxy = config.proxyUrls[currentProxyIndex];
-  currentProxyIndex = (currentProxyIndex + 1) % config.proxyUrls.length;
-  return proxy;
-}
-
-/**
- * Create an axios instance with GitHub token authentication and optional proxy
+ * Create an axios instance with GitHub token authentication
  * @returns Configured axios instance
  */
 function createAxiosInstance(): AxiosInstance {
   const token = getNextToken();
-  const proxyUrl = getNextProxy();
   const config: any = {
     headers: {
       "User-Agent": "axios/1.8.4",
       Authorization: `Bearer ${token}`,
     },
   };
-
-  if (proxyUrl) {
-    config.httpsAgent = new HttpsProxyAgent(proxyUrl);
-  }
 
   return axios.create(config);
 }
@@ -81,8 +62,13 @@ async function makeRequestWithRetry<T>(
       if (axios.isAxiosError(error)) {
         const axiosError = error as AxiosError;
         // Skip retries for 422 and 404 errors
-        if (axiosError.response?.status === 422 || axiosError.response?.status === 404) {
-          console.log(`ℹ️ Skipping retry for ${axiosError.response?.status} error`);
+        if (
+          axiosError.response?.status === 422 ||
+          axiosError.response?.status === 404
+        ) {
+          console.log(
+            `ℹ️ Skipping retry for ${axiosError.response?.status} error`
+          );
           throw error;
         }
 
@@ -211,13 +197,13 @@ export async function paginatedFetchTopRepos(
  * @returns Array of repositories or undefined if there's an error
  */
 export async function crawlPage(page: number): Promise<GitHubRepo[] | void> {
-  const url = GITHUB_STAR_RANKING_URL.replace('{page}', page.toString());
+  const url = GITHUB_STAR_RANKING_URL.replace("{page}", page.toString());
   console.log(`[Thread] Crawling page ${page}...`);
 
   let response;
   try {
     const headers = {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
     };
     response = await axios.get(url, { headers });
   } catch (error: any) {
@@ -233,9 +219,9 @@ export async function crawlPage(page: number): Promise<GitHubRepo[] | void> {
     return;
   }
 
-  const repoItems = $('.list-group-item.paginated_item');
+  const repoItems = $(".list-group-item.paginated_item");
   if (repoItems.length === 0) {
-    console.log('No repositories found, might have reached the last page!');
+    console.log("No repositories found, might have reached the last page!");
     return;
   }
 
@@ -243,14 +229,16 @@ export async function crawlPage(page: number): Promise<GitHubRepo[] | void> {
 
   repoItems.each((_, element) => {
     try {
-      const repoLink = $(element).attr('href');
-      if (!repoLink || !repoLink.startsWith('/')) return;
+      const repoLink = $(element).attr("href");
+      if (!repoLink || !repoLink.startsWith("/")) return;
 
-      const parts = repoLink.replace(/^\/+/, '').split('/');
+      const parts = repoLink.replace(/^\/+/, "").split("/");
       if (parts.length !== 2) return;
       const [repoUser, repoName] = parts;
 
-      const repoStarsText = $(element).find('.stargazers_count').text().trim().replace(/,/g, '') || '0';
+      const repoStarsText =
+        $(element).find(".stargazers_count").text().trim().replace(/,/g, "") ||
+        "0";
       const repoStars = parseInt(repoStarsText, 10);
 
       pageRepos.push({
@@ -269,7 +257,7 @@ export async function crawlPage(page: number): Promise<GitHubRepo[] | void> {
  * @param numRepos - The number of repositories to crawl
  * @returns Array of all repositories
  */
-export async function crawlTopRepos(numRepos: number) { 
+export async function crawlTopRepos(numRepos: number) {
   const allRepos: GitHubRepo[] = [];
   const totalPages = Math.ceil(numRepos / 100);
   for (let page = 1; page <= totalPages; page++) {
@@ -313,11 +301,15 @@ async function getCommitsBetweenTags(
     return commits;
   } catch (err: any) {
     if (err.response?.status === 422) {
-      console.log(`ℹ️ Skipping comparison between ${baseTag} and ${headTag} for ${repoFullName} due to diff generation timeout`);
+      console.log(
+        `ℹ️ Skipping comparison between ${baseTag} and ${headTag} for ${repoFullName} due to diff generation timeout`
+      );
       return [];
     }
     if (err.response?.status === 404) {
-      console.log(`ℹ️ Skipping comparison between ${baseTag} and ${headTag} for ${repoFullName} due to no common ancestor`);
+      console.log(
+        `ℹ️ Skipping comparison between ${baseTag} and ${headTag} for ${repoFullName} due to no common ancestor`
+      );
       return [];
     }
     console.error(
