@@ -23,6 +23,7 @@ model Repo {
   updatedAt DateTime  @updatedAt
 
   @@unique([name, owner])
+  @@index([name, owner])
 }
 
 model Release {
@@ -34,6 +35,7 @@ model Release {
   commits Commit[]
 
   @@unique([tagName, repoId], name: "tagname_repoId")
+  @@index([repoId])
 }
 
 model Commit {
@@ -42,4 +44,7 @@ model Commit {
   message   String
   release   Release? @relation(fields: [releaseId], references: [id])
   releaseId String?
+
+  @@index([releaseId])
+  @@index([sha])
 }
