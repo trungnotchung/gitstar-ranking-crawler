@@ -1,11 +1,10 @@
-import {
-  getAllReleasesAndCommits,
-  crawlTopRepos,
-} from "../crawlService";
+import { BenchmarkService } from "../benchmarkService";
+import { crawlTopRepos, getAllReleasesAndCommits } from "../crawlService";
 import { upsertRepoWithReleasesAndCommits } from "../dbService";
 import { ServiceFactory } from "../serviceFactory";
 
 const repoQueue = ServiceFactory.getRepoQueue();
+const benchmarkService = BenchmarkService.getInstance();
 
 // Get worker ID from environment variable or use default
 const workerId = process.env.WORKER_ID || "1";
@@ -20,6 +19,12 @@ repoQueue.process("crawl-repo", async (job) => {
   try {
     const result = await getAllReleasesAndCommits(repoFullName);
     console.log(`✅ Worker ${workerId} completed repo: ${repoFullName}`);
+
+    // Add stats to benchmark service
+    const totalReleases = result.length;
+    const totalCommits = result.reduce((sum, r) => sum + r.commits.length, 0);
+    benchmarkService.addStats(totalReleases, totalCommits);
+
     const [owner, name] = repoFullName.split("/");
     await upsertRepoWithReleasesAndCommits(owner, name, result);
     return { success: true, result, cached: false };
@@ -40,6 +45,9 @@ repoQueue.process("fetch-top-repos", async (job) => {
   console.log(`Worker ${workerId} Fetching top ${numRepos} repositories`);
 
   try {
+    // Reset benchmark stats before starting a new batch
+    benchmarkService.reset();
+
     const repos = await crawlTopRepos(numRepos);
     console.log(`Fetched ${repos.length} repositories`);
 
