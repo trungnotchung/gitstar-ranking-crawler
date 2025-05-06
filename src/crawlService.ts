@@ -87,8 +87,8 @@ async function makeRequestWithRetry<T>(
           axiosError.response?.data
         );
 
-        // Skip retries for 422 errors
-        if (axiosError.response?.status === 422) {
+        // Skip retries for 422 and 404 errors
+        if (axiosError.response?.status === 422 || axiosError.response?.status === 404) {
           throw error;
         }
 
@@ -313,6 +313,10 @@ async function getCommitsBetweenTags(
   } catch (err: any) {
     if (err.response?.status === 422) {
       console.log(`ℹ️ Skipping comparison between ${baseTag} and ${headTag} for ${repoFullName} due to diff generation timeout`);
+      return [];
+    }
+    if (err.response?.status === 404) {
+      console.log(`ℹ️ Skipping comparison between ${baseTag} and ${headTag} for ${repoFullName} due to no common ancestor`);
       return [];
     }
     console.error(
