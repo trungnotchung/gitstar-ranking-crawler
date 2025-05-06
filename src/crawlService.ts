@@ -1,6 +1,5 @@
 import axios, { AxiosError, AxiosInstance, AxiosResponse } from "axios";
 import * as cheerio from "cheerio";
-import fs from "fs";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { config } from "./config";
 import { GitHubCommit, GitHubReleaseCommit, GitHubRepo } from "./interfaces";
@@ -81,6 +80,12 @@ async function makeRequestWithRetry<T>(
 
       if (axios.isAxiosError(error)) {
         const axiosError = error as AxiosError;
+        // Skip retries for 422 and 404 errors
+        if (axiosError.response?.status === 422 || axiosError.response?.status === 404) {
+          console.log(`ℹ️ Skipping retry for ${axiosError.response?.status} error`);
+          throw error;
+        }
+
         console.error(
           `Request failed (attempt ${attempt + 1}/${maxRetries}):`,
           axiosError.response?.status,
@@ -307,6 +312,14 @@ async function getCommitsBetweenTags(
 
     return commits;
   } catch (err: any) {
+    if (err.response?.status === 422) {
+      console.log(`ℹ️ Skipping comparison between ${baseTag} and ${headTag} for ${repoFullName} due to diff generation timeout`);
+      return [];
+    }
+    if (err.response?.status === 404) {
+      console.log(`ℹ️ Skipping comparison between ${baseTag} and ${headTag} for ${repoFullName} due to no common ancestor`);
+      return [];
+    }
     console.error(
       `⚠️ Error getting commits between ${baseTag} and ${headTag} for ${repoFullName}:`,
       err.message
@@ -348,7 +361,7 @@ export async function getAllReleasesAndCommits(
 
       // For the last release, we can't compare with next release
       if (!nextRelease) {
-        console.log(`ℹ️ Last release reached: ${currentRelease.tag_name}`);
+        // console.log(`ℹ️ Last release reached: ${currentRelease.tag_name}`);
         continue;
       }
 
@@ -366,17 +379,6 @@ export async function getAllReleasesAndCommits(
         commits,
       });
     }
-
-    // Read existing cache
-    const cacheFile = "cache.json";
-    let cache: Record<string, GitHubReleaseCommit[]> = {};
-    if (fs.existsSync(cacheFile)) {
-      cache = JSON.parse(fs.readFileSync(cacheFile, "utf-8"));
-    }
-
-    // Update cache with new data
-    cache[repoFullName] = result;
-    fs.writeFileSync(cacheFile, JSON.stringify(cache, null, 2));
 
     return result;
   } catch (err: any) {

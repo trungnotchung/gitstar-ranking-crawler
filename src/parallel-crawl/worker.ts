@@ -2,6 +2,7 @@ import {
   getAllReleasesAndCommits,
   crawlTopRepos,
 } from "../crawlService";
+import { upsertRepoWithReleasesAndCommits } from "../dbService";
 import { ServiceFactory } from "../serviceFactory";
 
 const repoQueue = ServiceFactory.getRepoQueue();
@@ -19,6 +20,8 @@ repoQueue.process("crawl-repo", async (job) => {
   try {
     const result = await getAllReleasesAndCommits(repoFullName);
     console.log(`✅ Worker ${workerId} completed repo: ${repoFullName}`);
+    const [owner, name] = repoFullName.split("/");
+    await upsertRepoWithReleasesAndCommits(owner, name, result);
     return { success: true, result, cached: false };
   } catch (error: any) {
     console.error(
