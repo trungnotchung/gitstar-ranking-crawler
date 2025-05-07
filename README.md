@@ -87,8 +87,8 @@ Hệ thống được thiết kế theo kiến trúc phân tán và mở rộng 
    - Đảm bảo phục hồi nhanh nếu hệ thống restart.
 
 5. **Ghi vào cơ sở dữ liệu (PostgreSQL)**
-   - Dữ liệu được lưu vào các bảng `repositories`, `releases`, `commits`.
-   - Prisma ORM đảm bảo mapping và migrate schema linh hoạt.
+   - Dữ liệu được lưu vào các bảng `Repository`, `Release`, `Commit` trong database `gitstar`
+   - Sử dụng ORM Prisma: đảm bảo mapping và migrate schema linh hoạt.
 
 ## 3. Công nghệ sử dụng & Cấu trúc Module
 
@@ -150,3 +150,105 @@ Hệ thống được thiết kế theo kiến trúc phân tán và mở rộng 
   - `Release`: tag, nội dung release, liên kết với repo.
   - `Commit`: SHA, message, liên kết với release.
 - Hỗ trợ tự động migrate bằng Prisma CLI.
+
+## 4. Thiết kế Cơ sở dữ liệu
+
+Dự án sử dụng cơ sở dữ liệu **PostgreSQL** được quản lý thông qua **Prisma ORM**.
+
+Cơ sở dữ liệu bao gồm **3 bảng chính**:
+
+### 1. `Repo`
+Đại diện cho một repository trên Github.
+
+| Trường      | Kiểu dữ liệu | Mô tả                           |
+|-------------|--------------|----------------------------------|
+| `id`        | UUID         | Khóa chính, tự sinh             |
+| `name`      | String       | Tên repository                  |
+| `owner`     | String       | Chủ sở hữu repository           |
+| `createdAt` | DateTime     | Thời điểm tạo repository        |
+| `updatedAt` | DateTime     | Tự động cập nhật khi có thay đổi |
+| `releases`  | Release[]    | Danh sách các phiên bản phát hành liên kết |
+
+- **Ràng buộc duy nhất**: `(name, owner)`
+- **Index**: `(name, owner)`
+
+---
+
+### 2. `Release` - Phiên bản phát hành
+Đại diện cho một phiên bản Release của Repository.
+
+| Trường     | Kiểu dữ liệu | Mô tả                             |
+|------------|--------------|------------------------------------|
+| `id`       | UUID         | Khóa chính, tự sinh               |
+| `tagName`  | String       | Tên thẻ phiên bản (VD: v1.0.0)     |
+| `body`     | String       | Nội dung mô tả phiên bản           |
+| `repoId`   | UUID         | Khóa ngoại đến bảng `Repo`        |
+| `repo`     | Quan hệ      | Liên kết đến một `Repo` cụ thể     |
+| `commits`  | Commit[]     | Danh sách các commit liên quan     |
+
+- **Ràng buộc duy nhất**: `(tagName, repoId)`  
+- **Index**: `repoId`
+
+---
+
+### 3. `Commit` - Cam kết mã nguồn
+Đại diện cho một commit mã nguồn, có thể liên kết với một phiên bản phát hành.
+
+| Trường       | Kiểu dữ liệu | Mô tả                             |
+|--------------|--------------|------------------------------------|
+| `id`         | UUID         | Khóa chính, tự sinh               |
+| `sha`        | String       | Mã định danh commit duy nhất      |
+| `message`    | String       | Thông điệp commit                 |
+| `releaseId`  | UUID?        | Khóa ngoại đến bảng `Release` (có thể null) |
+| `release`    | Quan hệ      | Liên kết đến một `Release` (nếu có) |
+
+- **Ràng buộc duy nhất**: `sha`
+- **Index**: `releaseId`, `sha`
+
+---
+
+### Quan hệ giữa các bảng
+
+- Một `Repo` **có nhiều** `Release`
+- Một `Release` **có thể có nhiều** `Commit`
+- Một `Commit` **có thể thuộc về** một `Release` (hoặc không)
+
+### Cấu hình kết nối cơ sở dữ liệu
+
+Tham số kết nối được lưu trong biến môi trường `.env`:
+
+```env
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE"
+```
+
+## 5. Tính năng đã hoàn thành
+
+| Tính năng                             | Mô tả chi tiết |
+|--------------------------------------|----------------|
+| **Xác thực nhiều token**             | Hệ thống hỗ trợ nhiều GitHub token và tự động đổi token khi gặp rate limit. |
+| **Luân phiên proxy**                 | Tự động xoay vòng proxy để phân tán tải và tránh bị chặn IP. |
+| **Crawl repository có phân trang**   | Hỗ trợ crawl dữ liệu repository và các release kèm commit với phân trang. |
+| **Hàng đợi BullJS + Redis**          | Sử dụng Bull Queue kết hợp Redis để xử lý crawl theo hàng đợi, tối ưu hiệu suất. |
+| **Xử lý giới hạn rate + retry**      | Tự động phát hiện và xử lý khi gặp rate limit từ GitHub, retry theo exponential backoff. |
+| **So sánh commit giữa các tag**      | Thu thập danh sách commit giữa hai phiên bản (tag) để lưu trữ và phân tích. |
+| **Redis cache release cuối**         | Cache release mới nhất mỗi repo trong Redis để tránh crawl lại dữ liệu đã có. |
+| **Lưu vào PostgreSQL**               | Toàn bộ dữ liệu được lưu có cấu trúc trong PostgreSQL bằng Prisma ORM. |
+| **Viết tài liệu README**             | Tài liệu hóa chi tiết quy trình thực hiện, cấu trúc dự án và các tính năng trong README. |
+
+## 6. Tối ưu hóa hiệu suất và so sánh
+
+### 6.1 Phiên bản ban đầu
+
+- Chạy đơn luồng.
+- Cache bằng file cục bộ.
+- Không sử dụng proxy hay xoay vòng token.
+- Dễ bị giới hạn rate limit từ GitHub.
+- Không có cơ chế retry hay xử lý lỗi nâng cao.
+
+### 6.2 Phiên bản tối ưu
+
+- Hỗ trợ nhiều worker xử lý song song bằng BullJS + Redis.
+- Redis được dùng để cache dữ liệu release gần nhất.
+- Có luân phiên proxy và token, hạn chế bị block.
+- Cơ chế retry với backoff khi gặp lỗi hoặc rate limit.
+- Dễ dàng mở rộng và triển khai bằng Docker.
