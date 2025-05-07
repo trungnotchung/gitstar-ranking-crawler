@@ -150,3 +150,59 @@ Hệ thống được thiết kế theo kiến trúc phân tán và mở rộng 
   - `Release`: tag, nội dung release, liên kết với repo.
   - `Commit`: SHA, message, liên kết với release.
 - Hỗ trợ tự động migrate bằng Prisma CLI.
+
+## 4. Đánh giá và Nguyên nhân của Các Vấn đề Gặp Phải
+
+### 4.1. Đánh giá tổng quan
+Việc thu thập dữ liệu từ trang chủ GitHub để lấy danh sách các repository được gắn sao nhiều nhất (top-starred repos) tiêu tốn rất nhiều thời gian và dễ gặp lỗi. Dưới đây là các vấn đề cụ thể:
+
+### 4.2. Các vấn đề gặp phải
+
+#### Giới hạn số lượng repository
+- GitHub chỉ cho phép truy xuất tối đa 1000 repo từ trang Explore (bằng cách phân trang), gây khó khăn trong việc thu thập 5000 repo như mục tiêu ban đầu.
+
+#### Rate limit từ GitHub API
+- Khi dùng GitHub Token, API giới hạn ở 5000 request/giờ/token.
+- Trong khi đó, tổng số request để thu thập đầy đủ dữ liệu có thể lên tới (77539 releases + 5000 repo = 82539) request, chưa kể các lượt retry.
+
+#### Mất mát dữ liệu do lỗi mạng hoặc gián đoạn
+- Trong quá trình crawl, nếu gặp lỗi (timeout, mạng yếu, proxy die...) mà không có cơ chế khôi phục tốt thì dễ dẫn đến thiếu dữ liệu.
+
+#### Giới hạn đồng thời
+- GitHub chỉ cho phép tối đa 100 kết nối đồng thời, việc vượt quá ngưỡng này khiến IP hoặc token dễ bị block hoặc throttled.
+
+#### Thời gian crawl kéo dài
+- Với tốc độ hiện tại và giới hạn token, quá trình crawl có thể kéo dài tới 15 tiếng hoặc hơn, đặc biệt nếu phải chờ hết hạn rate limit.
+
+#### Hiệu suất ghi vào database chưa tối ưu
+- Các thao tác ghi dữ liệu có độ trễ cao, đặc biệt khi không có batch insert hoặc connection pool hiệu quả.
+
+#### Benchmark của version ban đầu
+
+
+
+## 5. Cải tiến và So sánh Hiệu Suất
+
+### 5.1. Các cải tiến chính
+
+#### Sử dụng GitStar thay thế GitHub Explore
+- GitStar là một dịch vụ trung gian thống kê các repo được gắn sao nhiều nhất
+- Việc crawl dữ liệu từ đây giúp vượt qua giới hạn 1000 repo của GitHub Explore
+
+#### Sử dụng nhiều GitHub token theo cơ chế Round-Robin
+- Chia đều các request qua nhiều token để phân tải và tránh rate limit
+- Giúp giảm thời gian chờ và tăng số lượng request xử lý mỗi giờ
+
+#### Bổ sung cơ chế retry
+- Với các request lỗi (timeout, 403, 500...), hệ thống tự động retry với backoff
+- Tránh mất dữ liệu trong các đợt gián đoạn tạm thời
+
+#### Tích hợp proxy xoay tua (Round-Robin Proxy)
+- Giảm nguy cơ bị chặn IP hoặc throttled do gửi nhiều request từ một địa chỉ IP cố định
+
+#### Dùng BullJS + Redis để xử lý song song
+- Áp dụng hàng đợi công việc với Bull + Redis, chia việc crawl cho 70 worker song song
+- Giảm thời gian crawl từ 15 tiếng xuống còn khoảng vài giờ
+
+#### Benchmark của version cải tiến
+
