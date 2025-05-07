@@ -1,6 +1,55 @@
-# 2 Kiến trúc hệ thống
+# GitHub Repository Crawler
 
-## 2.1 Sơ đồ Kiến trúc
+## 1. Giới thiệu Dự án
+
+Dự án này là một công cụ thu thập dữ liệu từ GitHub, nhằm hỗ trợ việc phân tích thông tin về các repository phổ biến. Hệ thống được thiết kế để tự động lấy dữ liệu về repository, các bản phát hành (release) và commit, sau đó lưu vào cơ sở dữ liệu có cấu trúc để phục vụ mục đích nghiên cứu hoặc tổng hợp.
+
+### Các tính năng chính
+
+- Thu thập dữ liệu hàng ngày từ các repository được xếp hạng cao trên GitHub  
+- Xử lý công việc song song để tăng hiệu quả thu thập  
+- Hỗ trợ luân phiên token và giới hạn tốc độ (rate limit) của GitHub API  
+- Ghi nhận thông tin đầy đủ: repository, release, commit  
+- Có cơ chế xử lý lỗi và retry để cải thiện độ ổn định  
+- Hỗ trợ theo dõi hiệu suất thông qua module benchmark  
+
+## 2. Cài đặt
+Trước khi khởi chạy hệ thống, bạn cần chuẩn bị:
+
+- [Docker](https://www.docker.com/) và Docker Compose  
+- [Node.js](https://nodejs.org/) phiên bản 18 hoặc mới hơn  
+- [PNPM](https://pnpm.io/) để quản lý các gói phụ thuộc  
+- [Git](https://git-scm.com/) để sao chép mã nguồn
+
+### Bước 1: Sao chép mã nguồn
+
+```bash
+git clone https://github.com/your-username/github-repo-crawler.git
+cd github-repo-crawler
+```
+
+### Bước 2: Tạo tệp `.env` cấu hình môi trường
+Tạo một file `.env` ở thư mục gốc và khai báo các biến theo hướng dẫn của file `example.env`.
+
+
+### Bước 3: Chạy chương trình
+```bash
+docker compose up --build
+```
+Lệnh trên sẽ thực hiện:
+
+- Khởi động cơ sở dữ liệu PostgreSQL và Redis
+
+- Tự động migrate cơ sở dữ liệu
+
+- Bắt đầu các tiến trình worker để xử lý job
+
+- Lên lịch crawl định kỳ
+
+
+## 2. Kiến trúc hệ thống
+
+### 2.1. Sơ đồ Kiến trúc
 
 Hệ thống được thiết kế theo kiến trúc phân tán và mở rộng với các thành phần chính:
 
@@ -13,7 +62,7 @@ Hệ thống được thiết kế theo kiến trúc phân tán và mở rộng 
 
 ![Sơ đồ kiến trúc](./github_crawler_architecture_diagram.png)
 
-## 2.2 Quy trình Xử lý
+### 2.2. Quy trình Xử lý
 
 1. **Thu thập repository**
 
@@ -41,7 +90,7 @@ Hệ thống được thiết kế theo kiến trúc phân tán và mở rộng 
 
 ## 3. Công nghệ sử dụng & Cấu trúc Module
 
-### 3.1 Công nghệ sử dụng
+### 3.1. Công nghệ sử dụng
 
 | Thành phần        | Công nghệ                                         |
 |-------------------|---------------------------------------------------|
@@ -56,7 +105,7 @@ Hệ thống được thiết kế theo kiến trúc phân tán và mở rộng 
 
 ---
 
-### 3.2 Cấu trúc Module
+### 3.2. Cấu trúc Module
 
 #### `serviceFactory.ts` – Service Factory
 - Quản lý singleton cho các service như Prisma, Bull, Redis.
