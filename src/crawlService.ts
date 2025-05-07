@@ -321,6 +321,65 @@ async function getCommitsBetweenTags(
 }
 
 /**
+ * Get all tags for a given repository
+ * @param repoFullName - Full name of the repository (e.g. "owner/repo")
+ * @returns Array of tags
+ */
+async function getAllTags(repoFullName: string): Promise<any[]> {
+  const [owner, repo] = repoFullName.split("/");
+
+  try {
+    const tags = await makeRequestWithRetry(async () => {
+      const axiosInstance = createAxiosInstance();
+      const tagsRes: AxiosResponse = await axiosInstance.get(
+        `https://api.github.com/repos/${owner}/${repo}/tags`
+      );
+      return tagsRes.data;
+    });
+
+    return tags;
+  } catch (err: any) {
+    console.error(
+      `⚠️ Error getting tags for ${repoFullName}:`,
+      err.message
+    );
+    return [];
+  }
+}
+
+/**
+ * Get all commits for a given repository
+ * @param repoFullName - Full name of the repository (e.g. "owner/repo")
+ * @returns Array of commits
+ */
+async function getAllCommits(repoFullName: string): Promise<GitHubCommit[]> {
+  const [owner, repo] = repoFullName.split("/");
+
+  try {
+    const commits = await makeRequestWithRetry(async () => {
+      const axiosInstance = createAxiosInstance();
+      const commitsRes: AxiosResponse = await axiosInstance.get(
+        `https://api.github.com/repos/${owner}/${repo}/commits`
+      );
+      return commitsRes.data.map((c: any) => ({
+        sha: c.sha,
+        commit: {
+          message: c.commit.message,
+        },
+      }));
+    });
+
+    return commits;
+  } catch (err: any) {
+    console.error(
+      `⚠️ Error getting commits for ${repoFullName}:`,
+      err.message
+    );
+    return [];
+  }
+}
+
+/**
  * Get all releases and their commits for a given repository
  * @param repoFullName - Full name of the repository (e.g. "owner/repo")
  * @returns Array of releases with their commits
@@ -331,6 +390,7 @@ export async function getAllReleasesAndCommits(
   const [owner, repo] = repoFullName.split("/");
 
   try {
+    // First try to get releases
     const releases = await makeRequestWithRetry(async () => {
       const axiosInstance = createAxiosInstance();
       const releasesRes: AxiosResponse = await axiosInstance.get(
@@ -339,40 +399,82 @@ export async function getAllReleasesAndCommits(
       return releasesRes.data;
     });
 
-    if (!releases || releases.length === 0) {
-      console.log(`Repo ${repoFullName} has no releases.`);
-      return [];
-    }
+    // If we have releases, process them as before
+    if (releases && releases.length > 0) {
+      const result: GitHubReleaseCommit[] = [];
 
-    const result: GitHubReleaseCommit[] = [];
+      for (let i = 0; i < releases.length; i++) {
+        const currentRelease = releases[i];
+        const nextRelease = releases[i + 1];
 
-    // Get commits for each release
-    for (let i = 0; i < releases.length; i++) {
-      const currentRelease = releases[i];
-      const nextRelease = releases[i + 1];
+        if (!nextRelease) {
+          continue;
+        }
 
-      // For the last release, we can't compare with next release
-      if (!nextRelease) {
-        // console.log(`ℹ️ Last release reached: ${currentRelease.tag_name}`);
-        continue;
+        const commits = await getCommitsBetweenTags(
+          repoFullName,
+          nextRelease.tag_name,
+          currentRelease.tag_name
+        );
+
+        result.push({
+          release: {
+            tag_name: currentRelease.tag_name,
+            body: currentRelease.body,
+          },
+          commits,
+        });
       }
 
-      const commits = await getCommitsBetweenTags(
-        repoFullName,
-        nextRelease.tag_name,
-        currentRelease.tag_name
-      );
-
-      result.push({
-        release: {
-          tag_name: currentRelease.tag_name,
-          body: currentRelease.body,
-        },
-        commits,
-      });
+      return result;
     }
 
-    return result;
+    // If no releases, try to get tags
+    // console.log(`No releases found for ${repoFullName}, trying tags...`);
+    const tags = await getAllTags(repoFullName);
+
+    if (tags && tags.length > 0) {
+      const result: GitHubReleaseCommit[] = [];
+
+      for (let i = 0; i < tags.length; i++) {
+        const currentTag = tags[i];
+        const nextTag = tags[i + 1];
+
+        if (!nextTag) {
+          continue;
+        }
+        
+        const commits = await getCommitsBetweenTags(
+          repoFullName,
+          nextTag.name,
+          currentTag.name
+        );
+
+        result.push({
+          release: {
+            tag_name: currentTag.name,
+            body: "", // Tags don't have release notes
+          },
+          commits,
+        });
+      }
+      console.log(`[Thread] Found ${result.length} tags for ${repoFullName}`);
+      return result;
+    }
+
+    // If no tags either, get all commits
+    // console.log(`No tags found for ${repoFullName}, getting all commits...`);
+    const commits = await getAllCommits(repoFullName);
+    console.log(`[Thread] Found ${commits.length} commits for ${repoFullName}`);
+
+    return [{
+      release: {
+        tag_name: "all",
+        body: "All commits in repository",
+      },
+      commits,
+    }];
+
   } catch (err: any) {
     console.error(
       `⚠️ Error getting releases and commits for ${repoFullName}:`,
