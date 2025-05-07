@@ -40,5 +40,16 @@ services:
     volumes:
       - .:/app
 
+  app:
+    build: .
+    command: sh -c "pnpm run start"
+    depends_on:
+      - postgres-db
+      - redis
+      - migrate
+      - worker1
+    volumes:
+      - .:/app
+
 volumes:
   postgres_data:
