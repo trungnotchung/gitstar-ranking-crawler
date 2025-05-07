@@ -12,7 +12,7 @@ const workerId = process.env.WORKER_ID || "1";
 /**
  * Process individual repository crawling
  */
-repoQueue.process("crawl-repo", async (job) => {
+repoQueue.process("crawl-repo", 90, async (job) => {
   const repoFullName = job.data.repoFullName;
   console.log(`🚀 Worker ${workerId} Processing repo: ${repoFullName}`);
 
@@ -40,7 +40,7 @@ repoQueue.process("crawl-repo", async (job) => {
 /**
  * Process top repositories fetching
  */
-repoQueue.process("fetch-top-repos", async (job) => {
+repoQueue.process("fetch-top-repos", 1, async (job) => {
   const numRepos = job.data.numRepos || 5000;
   console.log(`Worker ${workerId} Fetching top ${numRepos} repositories`);
 

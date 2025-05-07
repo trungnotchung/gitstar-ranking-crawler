@@ -31,7 +31,7 @@ export async function setupDailyJob() {
   // Create a repeatable job that runs every 24 hours
   await queue.add(
     "fetch-top-repos",
-    { numRepos: 5000 },
+    { numRepos: 5000   },
     {
       repeat: {
         every: 24 * 60 * 60 * 1000, // Every 24 hours in milliseconds

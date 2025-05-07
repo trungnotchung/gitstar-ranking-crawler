@@ -21,7 +21,12 @@ export class BenchmarkService {
     this.totalReleases += releases;
     this.totalCommits += commits;
 
-    // Print stats every 1000 projects
+    console.log("--------------------------------");
+    console.log("[Benchmark] Projects processed:", this.projectsProcessed);
+    console.log("[Benchmark] Total releases:", this.totalReleases);
+    console.log("[Benchmark] Total commits:", this.totalCommits);
+    console.log("--------------------------------");
+    // Print stats every 200 projects
     if (this.projectsProcessed % 1000 === 0) {
       this.printStats();
     }

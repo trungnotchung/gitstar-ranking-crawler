@@ -48,7 +48,7 @@ function createAxiosInstance(): AxiosInstance {
 async function makeRequestWithRetry<T>(
   requestFn: () => Promise<T>,
   maxRetries: number = 3,
-  initialDelay: number = 1000
+  initialDelay: number = 500
 ): Promise<T> {
   let lastError: Error | null = null;
   let delay = initialDelay;
@@ -66,18 +66,18 @@ async function makeRequestWithRetry<T>(
           axiosError.response?.status === 422 ||
           axiosError.response?.status === 404
         ) {
-          console.log(
-            `ℹ️ Skipping retry for ${axiosError.response?.status} error`
-          );
+          // console.log(
+          //   `ℹ️ Skipping retry for ${axiosError.response?.status} error`
+          // );
           throw error;
         }
 
-        console.error(
-          `Request failed (attempt ${attempt + 1}/${maxRetries}):`,
-          axiosError.response?.status,
-          axiosError.response?.statusText,
-          axiosError.response?.data
-        );
+        // console.error(
+        //   // `Request failed (attempt ${attempt + 1}/${maxRetries}):`,
+        //   axiosError.response?.status,
+        //   axiosError.response?.statusText,
+        //   axiosError.response?.data
+        // );
 
         // Check if we should retry based on the error
         if (axiosError.response?.status === 403) {
@@ -110,7 +110,7 @@ async function makeRequestWithRetry<T>(
 
       // Exponential backoff
       if (attempt < maxRetries - 1) {
-        console.log(`Retrying in ${delay}ms...`);
+        // console.log(`Retrying in ${delay}ms...`);
         await new Promise((resolve) => setTimeout(resolve, delay));
         delay *= 2; // Double the delay for next retry
       }
@@ -302,18 +302,18 @@ async function getCommitsBetweenTags(
   } catch (err: any) {
     if (err.response?.status === 422) {
       console.log(
-        `ℹ️ Skipping comparison between ${baseTag} and ${headTag} for ${repoFullName} due to diff generation timeout`
+        // `ℹ️ Skipping comparison between ${baseTag} and ${headTag} for ${repoFullName} due to diff generation timeout`
       );
       return [];
     }
     if (err.response?.status === 404) {
       console.log(
-        `ℹ️ Skipping comparison between ${baseTag} and ${headTag} for ${repoFullName} due to no common ancestor`
+        // `ℹ️ Skipping comparison between ${baseTag} and ${headTag} for ${repoFullName} due to no common ancestor`
       );
       return [];
     }
     console.error(
-      `⚠️ Error getting commits between ${baseTag} and ${headTag} for ${repoFullName}:`,
+      // `⚠️ Error getting commits between ${baseTag} and ${headTag} for ${repoFullName}:`,
       err.message
     );
     return [];
