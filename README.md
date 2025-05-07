@@ -181,7 +181,8 @@ Việc thu thập dữ liệu từ trang chủ GitHub để lấy danh sách cá
 #### Hiệu suất ghi vào database chưa tối ưu
 - Các thao tác ghi dữ liệu có độ trễ cao, đặc biệt khi không có batch insert hoặc connection pool hiệu quả.
 
-#### Benchmark của version ban đầu
+#### Benchmark của version ban đầu chỉ sử dụng 1 github token và không có xử lý song song
+![Screenshot 2025-05-07 at 22 13 20](https://github.com/user-attachments/assets/465d336e-437d-4a97-8a7c-735c394ab8eb)
 
 
 
@@ -208,7 +209,9 @@ Việc thu thập dữ liệu từ trang chủ GitHub để lấy danh sách cá
 - Áp dụng hàng đợi công việc với Bull + Redis, chia việc crawl cho 70 worker song song
 - Giảm thời gian crawl từ 15 tiếng xuống còn khoảng vài giờ
 
-#### Benchmark của version cải tiến
+#### Benchmark của version cải tiến với việc sử dụng 40 worker để crawl releases, commit song song và 8 github token
+![Screenshot 2025-05-07 at 22 23 50](https://github.com/user-attachments/assets/fb0df781-9be7-4783-8f1a-4f864fdfb05d)
+
 
 ## 6. Thiết kế Cơ sở dữ liệu
 
