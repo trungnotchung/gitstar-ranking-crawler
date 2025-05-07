@@ -209,6 +209,13 @@ Việc thu thập dữ liệu từ trang chủ GitHub để lấy danh sách cá
 - Áp dụng hàng đợi công việc với Bull + Redis, chia việc crawl cho 70 worker song song
 - Giảm thời gian crawl từ 15 tiếng xuống còn khoảng vài giờ
 
+#### Batch Upsert vào cơ sở dữ liệu
+- Ghi dữ liệu vào PostgreSQL theo batch (lô 100 commit mỗi lần).
+- Sử dụng Prisma `$transaction` kết hợp `upsert()` để đảm bảo:
+  - Tính toàn vẹn dữ liệu.
+  - Tránh lặp dữ liệu.
+  - Tăng hiệu suất ghi so với từng request riêng lẻ.
+
 #### Benchmark của version cải tiến với việc sử dụng 40 worker để crawl releases, commit song song và 8 github token
 ![Screenshot 2025-05-07 at 22 23 50](https://github.com/user-attachments/assets/fb0df781-9be7-4783-8f1a-4f864fdfb05d)
 
