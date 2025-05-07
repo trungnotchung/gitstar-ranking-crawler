@@ -1,4 +1,8 @@
 # GitHub Repository Crawler
+## Thông tin thành viên nhóm:
+1. Phạm Xuân Trung - 22021127
+2. Trần Anh Đức - 22021165
+3. Nguyễn Hùng Dũng - 22021133
 
 ## 1. Giới thiệu Dự án
 
