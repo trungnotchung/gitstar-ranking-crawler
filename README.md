@@ -38,3 +38,57 @@ Hệ thống được thiết kế theo kiến trúc phân tán và mở rộng 
 5. **Ghi vào cơ sở dữ liệu (PostgreSQL)**
    - Dữ liệu được lưu vào các bảng `repositories`, `releases`, `commits`.
    - Prisma ORM đảm bảo mapping và migrate schema linh hoạt.
+
+## 3. Công nghệ sử dụng & Cấu trúc Module
+
+### 3.1 Công nghệ sử dụng
+
+| Thành phần        | Công nghệ                                         |
+|-------------------|---------------------------------------------------|
+| Ngôn ngữ chính     | TypeScript + Node.js                              |
+| Hàng đợi xử lý     | [BullJS](https://github.com/OptimalBits/bull) + Redis |
+| Giao tiếp HTTP     | [Axios](https://axios-http.com/) với token rotation |
+| Bộ nhớ đệm         | Redis (caching release/tags đã xử lý)             |
+| Cơ sở dữ liệu      | PostgreSQL (ORM: [Prisma](https://www.prisma.io/)) |
+| Triển khai         | Docker + Docker Compose                           |
+| Proxy HTTP         | https-proxy-agent (luân phiên proxy)              |
+| Xác thực GitHub    | GitHub Personal Access Tokens (PATs) luân phiên   |
+
+---
+
+### 3.2 Cấu trúc Module
+
+#### `serviceFactory.ts` – Service Factory
+- Quản lý singleton cho các service như Prisma, Bull, Redis.
+- Khởi tạo, chia sẻ và dọn dẹp tài nguyên giữa các module.
+- Đảm bảo các kết nối được đóng đúng cách khi tắt chương trình.
+
+#### `dbService.ts` – Database Service
+- Thực thi các giao dịch với PostgreSQL thông qua Prisma.
+- Ghi dữ liệu theo batch, áp dụng upsert để giữ tính nhất quán.
+- Hỗ trợ retry logic khi thao tác CSDL thất bại.
+
+#### `crawlService.ts` – Crawl Service
+- Giao tiếp với GitHub API: releases, tags, commits.
+- Tự động xử lý rate limit, luân phiên token và proxy.
+- Retry logic theo exponential backoff + delay nếu bị block.
+
+#### `worker.ts` – Parallel Crawl System
+- Lấy job từ hàng đợi và xử lý song song qua nhiều tiến trình.
+- Hỗ trợ retry job thất bại, logging trạng thái.
+- Áp dụng phân phối khối lượng công việc hiệu quả.
+
+#### `benchmarkService.ts`
+- Theo dõi hiệu suất toàn bộ hệ thống: số job thành công, thất bại.
+- Ghi log và hỗ trợ thống kê trong quá trình crawl dữ liệu.
+
+#### `config.ts`
+- Quản lý biến môi trường: token GitHub, proxy, Redis, DB URI...
+- Cấu hình các tham số hệ thống một cách tập trung.
+
+#### Prisma Schema – Mô hình dữ liệu
+- Định nghĩa các bảng:
+  - `Repository`: thông tin repo (name, owner).
+  - `Release`: tag, nội dung release, liên kết với repo.
+  - `Commit`: SHA, message, liên kết với release.
+- Hỗ trợ tự động migrate bằng Prisma CLI.
