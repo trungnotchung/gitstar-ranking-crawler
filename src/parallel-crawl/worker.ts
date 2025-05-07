@@ -12,7 +12,7 @@ const workerId = process.env.WORKER_ID || "1";
 /**
  * Process individual repository crawling
  */
-repoQueue.process("crawl-repo", 90, async (job) => {
+repoQueue.process("crawl-repo", 70, async (job) => {
   const repoFullName = job.data.repoFullName;
   console.log(`🚀 Worker ${workerId} Processing repo: ${repoFullName}`);
 
